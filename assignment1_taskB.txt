@@ -1,0 +1,5 @@
+commit cf00d87c8da2dd44b2ab35db2b133494cfe53df8 (HEAD -> main, upstream/main, upstream/HEAD)
+Author: Tiziano Zingales <tiziano.zingales@gmail.com>
+Date:   Mon Sep 28 16:41:01 2026 +0200
+
+    Declare setuptools for Python 3.12 transit support
