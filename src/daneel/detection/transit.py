@@ -1,11 +1,11 @@
 """
 Transit modelling module for exoplanet light curves.
 
-Target: HD 209458 b (Osiris)
-Host star: HD 209458 (G0V, Teff ~ 6065 K)
+Target: WASP-43 b
+Host star: WASP-43 (K7V, Teff ~ 4400 K)
 References:
-    - Charbonneau et al. (2000), ApJ, 529, L45 (First detection of transit)
-    - Southworth, J. (2010), MNRAS, 408(3), 1689-1713 (Homogeneous studies of transiting extrasolar planets)
+    - Hellier et al. (2011), A&A, 535, L7 (Discovery paper)
+    - Southworth, J. (2012), MNRAS, 426(2), 1291-1309 (Homogeneous studies of transiting extrasolar planets)
     - NASA Exoplanet Archive: https://exoplanetarchive.ipac.caltech.edu/
 """
 
@@ -19,19 +19,19 @@ import setuptools  # noqa: F401  # Provides distutils compatibility for batman o
 
 batman = importlib.import_module("batman")
 
-# Default target parameters: HD 209458 b
-PLANET_NAME = "HD 209458 b"
-PLANET_SLUG = "HD_209458_b"
+# Default target parameters: WASP-43 b
+PLANET_NAME = "WASP-43 b"
+PLANET_SLUG = "WASP-43_b"
 
 DEFAULT_PARAMS = {
     "t0": 0.0,              # Time of inferior conjunction [days]
-    "per": 3.52474859,      # Orbital period [days]
-    "rp": 0.12086,          # Planet-to-star radius ratio (Rp / Rstar)
-    "a": 8.76,              # Scaled semi-major axis (a / Rstar)
-    "inc": 86.71,           # Orbital inclination [degrees]
+    "per": 0.81347753,      # Orbital period [days]
+    "rp": 0.15949,          # Planet-to-star radius ratio (Rp / Rstar)
+    "a": 4.872,             # Scaled semi-major axis (a / Rstar)
+    "inc": 82.33,           # Orbital inclination [degrees]
     "ecc": 0.0,             # Eccentricity (circular orbit)
-    "w": 90.0,              # Longitude of periastron [degrees]
-    "u": [0.37, 0.28],      # Quadratic limb darkening coefficients (optical/V band)
+    "w": 0.0,               # Longitude of periastron [degrees]
+    "u": [0.36, 0.22],      # Quadratic limb darkening coefficients (optical/V band)
     "limb_dark": "quadratic",
 }
 
@@ -55,14 +55,14 @@ def build_batman_params(custom_params=None):
 
     params = batman.TransitParams()
     params.t0 = float(p_dict.get("t0", 0.0))
-    params.per = float(p_dict.get("per", 3.52474859))
-    params.rp = float(p_dict.get("rp", 0.12086))
-    params.a = float(p_dict.get("a", 8.76))
-    params.inc = float(p_dict.get("inc", 86.71))
+    params.per = float(p_dict.get("per", 0.81347753))
+    params.rp = float(p_dict.get("rp", 0.15949))
+    params.a = float(p_dict.get("a", 4.872))
+    params.inc = float(p_dict.get("inc", 82.33))
     params.ecc = float(p_dict.get("ecc", 0.0))
-    params.w = float(p_dict.get("w", 90.0))
+    params.w = float(p_dict.get("w", 0.0))
     params.limb_dark = str(p_dict.get("limb_dark", "quadratic"))
-    params.u = list(p_dict.get("u", [0.37, 0.28]))
+    params.u = list(p_dict.get("u", [0.36, 0.22]))
     return params
 
 
@@ -142,7 +142,7 @@ def plot_light_curve(output_file=f"{PLANET_SLUG}_assignment1_taskF.png", params=
         f"Inclination $i$: {params.inc:.2f}° (impact $b={b:.2f}$)\n"
         f"Limb darkening $u$: {params.u}\n"
         f"Transit depth: {actual_depth:.2f}%\n"
-        f"Source: Southworth (2010)"
+        f"Source: Southworth (2012)"
     )
     ax.text(
         0.03,
