@@ -45,13 +45,19 @@ daneel -i <input_file> --transit [--output lightcurve.png]
 ### Examples
 
 ```bash
-# Run exoplanet detection
+# Generate transit light curve for HD 209458
+daneel -i examples/HD_209458_b.yaml -t
+
+# Customise output filename
+daneel -i examples/HD_209458_b.yaml -t -o HD_209458_b_lightcurve.png
+
+# Run transit light curve with default examples parameters
 daneel -i examples/params.yaml --transit --output lightcurve.png
 
 # Run atmospheric characterization
 daneel -i examples/params.yaml --detect
 
-# Run both detection and atmospheric analysis
+# Run atmospheric analysis
 daneel -i examples/params.yaml --atmosphere
 ```
 
