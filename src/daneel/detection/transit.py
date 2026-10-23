@@ -92,7 +92,7 @@ def compute_light_curve(params=None, t=None):
     return t, flux
 
 
-def plot_light_curve(output_file=f"{PLANET_SLUG}_assignment1_taskF.png", params=None, t=None, show=False):
+def plot_light_curve(output_file=f"{PLANET_SLUG}_assignment1_taskG.png", params=None, t=None, show=False):
     """
     Generate and save the static transit light curve.
 
@@ -248,7 +248,7 @@ def save_transit_animation(output_file=f"{PLANET_SLUG}_transit.gif", params=None
 if __name__ == "__main__":
     print(f"Running transit modelling for {PLANET_NAME}...")
     # 1. Generate static light curve
-    static_png = f"{PLANET_SLUG}_assignment1_taskF.png"
+    static_png = f"{PLANET_SLUG}_assignment1_taskG.png"
     plot_light_curve(output_file=static_png)
 
     # 2. Generate animation GIF
