@@ -1,0 +1,33 @@
+# ==============================================================================
+# Configuration 3: Deep Trees (n_estimators=500, max_depth=30)
+# ==============================================================================
+
+# Data ingestion, splitting, and augmentation parameters
+data:
+  csv_path: "tess_data.csv"           # Path to the input light curve CSV dataset
+  n_bins: 1000                        # Number of flux feature bins (flux_0000..flux_0999)
+  test_size: 0.2                      # Proportion of the dataset allocated to the test set
+  balanced: true                      # Whether to balance the training set with data augmentation
+  samples_per_class: 350              # Target samples per class when balancing the training set
+  random_state: 42                    # Deterministic seed ensuring the exact same evaluation split
+
+# Model hyperparameters and pipeline configuration
+model:
+  standardize: false                  # Whether to include StandardScaler in the scikit-learn Pipeline
+  n_estimators: 500                   # Number of decision trees in the Random Forest ensemble
+  max_depth: 30                       # Maximum tree depth
+  min_samples_leaf: 1                 # Minimum number of samples required at a leaf node
+  max_features: "sqrt"                # Number of features to consider per split
+  bootstrap: true                     # Whether bootstrap samples are used when building trees
+  class_weight: null                  # Class weighting scheme ('balanced', 'balanced_subsample', or null)
+  random_state: 42                    # Random seed for tree construction and bootstrapping
+  n_jobs: -1                          # Number of CPU cores for parallel training (-1 uses all cores)
+  oob_score: true                     # Compute Out-of-Bag generalization score during training
+
+# Output path for this configuration's evaluation report
+output:
+  report_path: "random_forest/results/report_config3_deep_trees.txt"
+
+# Logging configuration
+logging:
+  level: "INFO"                       # Logging severity level: DEBUG, INFO, WARNING, ERROR

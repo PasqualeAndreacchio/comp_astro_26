@@ -1,0 +1,50 @@
+================================================================================
+RANDOM FOREST EVALUATION REPORT
+================================================================================
+
+MODEL HYPERPARAMETERS:
+--------------------------------------------------------------------------------
+  n_estimators      : 300
+  max_depth         : 20
+  min_samples_leaf  : 1
+  max_features      : sqrt
+  bootstrap         : True
+  class_weight      : None
+  random_state      : 42
+  standardize       : False
+  oob_score         : True
+  n_jobs            : -1
+
+EVALUATION METRICS & PRECISION:
+--------------------------------------------------------------------------------
+  Precision (Planet / Positive Class)     : 0.7881 (78.81%)
+  Precision (Non-Planet / Negative Class) : 0.9859 (98.59%)
+  Precision (Macro Average)               : 0.8870 (88.70%)
+  Precision (Weighted Average)            : 0.8875 (88.75%)
+  Accuracy (at Optimal Threshold)         : 86.24%
+  Accuracy (at Default Threshold 0.5000)  : 84.66%
+  Optimal Decision Threshold (Youden's J) : 0.3600 (Default: 0.5000)
+  ROC-AUC Score                           : 0.8885
+  Out-of-Bag (OOB) Score                  : 0.8086
+  Recall (Planet)                         : 0.9894 (98.94%)
+  Recall (Non-Planet)                     : 0.7368 (73.68%)
+  F1-Score (Planet)                       : 0.8774
+  F1-Score (Non-Planet)                   : 0.8434
+
+CONFUSION MATRIX (Evaluated at Optimal Threshold):
+--------------------------------------------------------------------------------
+                       Predicted Non-Planet    Predicted Planet
+  Actual Non-Planet :        70                    25                
+  Actual Planet     :        1                     93                
+
+DETAILED CLASSIFICATION REPORT (Optimal Threshold):
+--------------------------------------------------------------------------------
+              precision    recall  f1-score   support
+
+  Non-Planet     0.9859    0.7368    0.8434        95
+      Planet     0.7881    0.9894    0.8774        94
+
+    accuracy                         0.8624       189
+   macro avg     0.8870    0.8631    0.8604       189
+weighted avg     0.8875    0.8624    0.8603       189
+================================================================================

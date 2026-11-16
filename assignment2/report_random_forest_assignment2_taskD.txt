@@ -1,0 +1,247 @@
+================================================================================
+ASSIGNMENT 2 - TASK D: RANDOM FOREST EXOPLANET CLASSIFICATION REPORT
+================================================================================
+
+================================================================================
+CONFIGURATION 1: Shallow Trees (Config 1)
+================================================================================
+
+MODEL HYPERPARAMETERS:
+--------------------------------------------------------------------------------
+  n_estimators      : 100
+  max_depth         : 10
+  min_samples_leaf  : 1
+  max_features      : sqrt
+  bootstrap         : True
+  class_weight      : None
+  random_state      : 42
+  standardize       : False
+  oob_score         : True
+  n_jobs            : -1
+
+EVALUATION METRICS & PRECISION:
+--------------------------------------------------------------------------------
+  Precision (Planet / Positive Class)     : 0.7931 (79.31%)
+  Precision (Non-Planet / Negative Class) : 0.9726 (97.26%)
+  Precision (Macro Average)               : 0.8829 (88.29%)
+  Precision (Weighted Average)            : 0.8833 (88.33%)
+  Accuracy (at Optimal Threshold)         : 86.24%
+  Accuracy (at Default Threshold 0.5000)  : 83.60%
+  Optimal Decision Threshold (Youden's J) : 0.3614 (Default: 0.5000)
+  ROC-AUC Score                           : 0.8837
+  Out-of-Bag (OOB) Score                  : 0.7929
+  Recall (Planet)                         : 0.9787 (97.87%)
+  Recall (Non-Planet)                     : 0.7474 (74.74%)
+  F1-Score (Planet)                       : 0.8762
+  F1-Score (Non-Planet)                   : 0.8452
+
+CONFUSION MATRIX (Evaluated at Optimal Threshold):
+--------------------------------------------------------------------------------
+                       Predicted Non-Planet    Predicted Planet
+  Actual Non-Planet :        71                    24                
+  Actual Planet     :        2                     92                
+
+DETAILED CLASSIFICATION REPORT (Optimal Threshold):
+--------------------------------------------------------------------------------
+              precision    recall  f1-score   support
+
+  Non-Planet     0.9726    0.7474    0.8452        95
+      Planet     0.7931    0.9787    0.8762        94
+
+    accuracy                         0.8624       189
+   macro avg     0.8829    0.8630    0.8607       189
+weighted avg     0.8833    0.8624    0.8606       189
+
+
+================================================================================
+CONFIGURATION 2: Moderate Ensemble (Config 2)
+================================================================================
+
+MODEL HYPERPARAMETERS:
+--------------------------------------------------------------------------------
+  n_estimators      : 300
+  max_depth         : 20
+  min_samples_leaf  : 1
+  max_features      : sqrt
+  bootstrap         : True
+  class_weight      : None
+  random_state      : 42
+  standardize       : False
+  oob_score         : True
+  n_jobs            : -1
+
+EVALUATION METRICS & PRECISION:
+--------------------------------------------------------------------------------
+  Precision (Planet / Positive Class)     : 0.7881 (78.81%)
+  Precision (Non-Planet / Negative Class) : 0.9859 (98.59%)
+  Precision (Macro Average)               : 0.8870 (88.70%)
+  Precision (Weighted Average)            : 0.8875 (88.75%)
+  Accuracy (at Optimal Threshold)         : 86.24%
+  Accuracy (at Default Threshold 0.5000)  : 84.66%
+  Optimal Decision Threshold (Youden's J) : 0.3600 (Default: 0.5000)
+  ROC-AUC Score                           : 0.8885
+  Out-of-Bag (OOB) Score                  : 0.8086
+  Recall (Planet)                         : 0.9894 (98.94%)
+  Recall (Non-Planet)                     : 0.7368 (73.68%)
+  F1-Score (Planet)                       : 0.8774
+  F1-Score (Non-Planet)                   : 0.8434
+
+CONFUSION MATRIX (Evaluated at Optimal Threshold):
+--------------------------------------------------------------------------------
+                       Predicted Non-Planet    Predicted Planet
+  Actual Non-Planet :        70                    25                
+  Actual Planet     :        1                     93                
+
+DETAILED CLASSIFICATION REPORT (Optimal Threshold):
+--------------------------------------------------------------------------------
+              precision    recall  f1-score   support
+
+  Non-Planet     0.9859    0.7368    0.8434        95
+      Planet     0.7881    0.9894    0.8774        94
+
+    accuracy                         0.8624       189
+   macro avg     0.8870    0.8631    0.8604       189
+weighted avg     0.8875    0.8624    0.8603       189
+
+
+================================================================================
+CONFIGURATION 3: Deep Trees (Config 3)
+================================================================================
+
+MODEL HYPERPARAMETERS:
+--------------------------------------------------------------------------------
+  n_estimators      : 500
+  max_depth         : 30
+  min_samples_leaf  : 1
+  max_features      : sqrt
+  bootstrap         : True
+  class_weight      : None
+  random_state      : 42
+  standardize       : False
+  oob_score         : True
+  n_jobs            : -1
+
+EVALUATION METRICS & PRECISION:
+--------------------------------------------------------------------------------
+  Precision (Planet / Positive Class)     : 0.7881 (78.81%)
+  Precision (Non-Planet / Negative Class) : 0.9859 (98.59%)
+  Precision (Macro Average)               : 0.8870 (88.70%)
+  Precision (Weighted Average)            : 0.8875 (88.75%)
+  Accuracy (at Optimal Threshold)         : 86.24%
+  Accuracy (at Default Threshold 0.5000)  : 83.60%
+  Optimal Decision Threshold (Youden's J) : 0.3700 (Default: 0.5000)
+  ROC-AUC Score                           : 0.8926
+  Out-of-Bag (OOB) Score                  : 0.8043
+  Recall (Planet)                         : 0.9894 (98.94%)
+  Recall (Non-Planet)                     : 0.7368 (73.68%)
+  F1-Score (Planet)                       : 0.8774
+  F1-Score (Non-Planet)                   : 0.8434
+
+CONFUSION MATRIX (Evaluated at Optimal Threshold):
+--------------------------------------------------------------------------------
+                       Predicted Non-Planet    Predicted Planet
+  Actual Non-Planet :        70                    25                
+  Actual Planet     :        1                     93                
+
+DETAILED CLASSIFICATION REPORT (Optimal Threshold):
+--------------------------------------------------------------------------------
+              precision    recall  f1-score   support
+
+  Non-Planet     0.9859    0.7368    0.8434        95
+      Planet     0.7881    0.9894    0.8774        94
+
+    accuracy                         0.8624       189
+   macro avg     0.8870    0.8631    0.8604       189
+weighted avg     0.8875    0.8624    0.8603       189
+
+
+================================================================================
+CONFIGURATION 4: Unconstrained Depth (Config 4)
+================================================================================
+
+MODEL HYPERPARAMETERS:
+--------------------------------------------------------------------------------
+  n_estimators      : 500
+  max_depth         : None
+  min_samples_leaf  : 1
+  max_features      : sqrt
+  bootstrap         : True
+  class_weight      : None
+  random_state      : 42
+  standardize       : False
+  oob_score         : True
+  n_jobs            : -1
+
+EVALUATION METRICS & PRECISION:
+--------------------------------------------------------------------------------
+  Precision (Planet / Positive Class)     : 0.7881 (78.81%)
+  Precision (Non-Planet / Negative Class) : 0.9859 (98.59%)
+  Precision (Macro Average)               : 0.8870 (88.70%)
+  Precision (Weighted Average)            : 0.8875 (88.75%)
+  Accuracy (at Optimal Threshold)         : 86.24%
+  Accuracy (at Default Threshold 0.5000)  : 83.60%
+  Optimal Decision Threshold (Youden's J) : 0.3700 (Default: 0.5000)
+  ROC-AUC Score                           : 0.8926
+  Out-of-Bag (OOB) Score                  : 0.8043
+  Recall (Planet)                         : 0.9894 (98.94%)
+  Recall (Non-Planet)                     : 0.7368 (73.68%)
+  F1-Score (Planet)                       : 0.8774
+  F1-Score (Non-Planet)                   : 0.8434
+
+CONFUSION MATRIX (Evaluated at Optimal Threshold):
+--------------------------------------------------------------------------------
+                       Predicted Non-Planet    Predicted Planet
+  Actual Non-Planet :        70                    25                
+  Actual Planet     :        1                     93                
+
+DETAILED CLASSIFICATION REPORT (Optimal Threshold):
+--------------------------------------------------------------------------------
+              precision    recall  f1-score   support
+
+  Non-Planet     0.9859    0.7368    0.8434        95
+      Planet     0.7881    0.9894    0.8774        94
+
+    accuracy                         0.8624       189
+   macro avg     0.8870    0.8631    0.8604       189
+weighted avg     0.8875    0.8624    0.8603       189
+
+
+================================================================================
+COMPARISON & CONCLUSION
+================================================================================
+
+1. Comparative Metric Overview:
+
+   Configuration                n_est  max_depth  Prec (P)  Prec (NP)  Macro Prec  Recall (P)  Acc (Opt)  Acc (0.5)  ROC-AUC   OOB
+   ----------------------------------------------------------------------------------------------------------------------------------
+   Config 1 (Shallow Trees)       100         10    79.31%     97.26%      88.29%      97.87%     86.24%     83.60%   0.8837  0.7929
+   Config 2 (Moderate Ensemble)   300         20    78.81%     98.59%      88.70%      98.94%     86.24%     84.66%   0.8885  0.8086
+   Config 3 (Deep Trees)          500         30    78.81%     98.59%      88.70%      98.94%     86.24%     83.60%   0.8926  0.8043
+   Config 4 (Unconstrained)       500       None    78.81%     98.59%      88.70%      98.94%     86.24%     83.60%   0.8926  0.8043
+
+2. Analysis of Model Dynamics:
+   - Impact of Tree Depth (max_depth):
+     Restricting tree depth to 10 (Config 1) yields slightly higher Planet Precision (79.31% vs 78.81%)
+     due to 1 fewer false positive, but increases false negatives from 1 to 2 (reducing Planet Recall
+     from 98.94% to 97.87%). Expanding depth to 20 (Config 2) allows the ensemble to capture subtle
+     in-transit ingress/egress profiles, boosting Non-Planet Precision to 98.59% (only 1 false negative).
+     Increasing depth beyond 20 to 30 or None (Configs 3 and 4) produces identical test predictions and
+     confusion matrices, as individual trees naturally exhaust split criteria before reaching depth 30.
+
+   - Impact of Ensemble Size (n_estimators):
+     Increasing the number of estimators from 100 to 300 stabilizes decision boundaries significantly,
+     raising the Out-of-Bag (OOB) generalization score from 0.7929 to a benchmark-leading 0.8086.
+     However, pushing to 500 estimators offers no additional gain in test accuracy (remaining at 86.24%)
+     and results in a slight drop in OOB score (0.8043), indicating diminishing returns and marginal
+     overfitting to localized photometric noise.
+
+3. Final Verdict:
+   Configuration 2 (n_estimators=300, max_depth=20) emerges as the optimal model:
+   - It delivers the highest Out-of-Bag generalization score (0.8086) across all tested configurations.
+   - It achieves the highest accuracy at the standard default threshold of 0.5 (84.66%).
+   - It maintains superior class balance: a high Macro Precision of 88.70%, exceptional Non-Planet
+     purity (98.59% precision), and near-total planet detection capability (98.94% recall, missing only
+     1 true exoplanet transit out of 94).
+   - It avoids the unnecessary computational overhead and potential noise overfitting associated with
+     unconstrained 500-tree models (Configs 3 and 4).
+================================================================================
