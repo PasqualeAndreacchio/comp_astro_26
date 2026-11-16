@@ -1,0 +1,13 @@
+transit:
+  t0: 0.0 # time of inferior conjunction [days]
+  per: 3.52474859 # orbital period [days]
+  rp: 0.12086 # planet radius in units of stellar radii (Rp/R*)
+  a: 8.76 # scaled semi-major axis (a/R*)
+  inc: 86.71 # orbital inclination [degrees]
+  ecc: 0.0 # orbital eccentricity (circular orbit)
+  w: 90.0 # longitude of periastron [degrees]
+  u: [0.37, 0.28] # quadratic limb darkening coefficients (V band)
+  limb_dark: "quadratic" # limb darkening model
+
+classifier:
+  type: cnn # [cnn, rf] for Convolutional Neural Network and Random Forest
