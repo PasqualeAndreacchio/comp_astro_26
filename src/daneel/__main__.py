@@ -1,8 +1,7 @@
 import argparse
 from datetime import datetime, timezone
 
-from daneel.detection import TransitModel
-from daneel.parameters import Parameters
+from daneel.detection.transit import run_for_planet
 
 
 def main():
@@ -22,18 +21,20 @@ def main():
 
     actions.add_argument("-d", "--detect", action="store_true", help="Run exoplanet detection")
     actions.add_argument("-a", "--atmosphere", action="store_true", help="Run atmospheric characterisation")
-    parser.add_argument("-o", "--output", default="lc.png", help="Output image for --transit")
+    parser.add_argument(
+        "-o",
+        "--output",
+        default=None,
+        help="Output image for --transit (default: <slug>_light_curve.png)",
+    )
 
     args = parser.parse_args()
 
     """Launch Daneel"""
     start = datetime.now(timezone.utc)
 
-    input_pars = Parameters(args.input_file).params
-
     if args.transit:
-        transit = TransitModel(input_pars['transit'])
-        transit.plot_light_curve(args.output)
+        run_for_planet(config_file=args.input_file, output_file=args.output)
     elif args.detect:
         parser.error("detection is not implemented yet; use --transit")
     elif args.atmosphere:

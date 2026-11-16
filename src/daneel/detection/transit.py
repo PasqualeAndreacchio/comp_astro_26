@@ -14,6 +14,7 @@ import importlib
 import json
 from pathlib import Path
 import re
+import sys
 import time
 import urllib.parse
 import urllib.request
@@ -21,9 +22,20 @@ import matplotlib.animation as animation
 import matplotlib.patches as patches
 import matplotlib.pyplot as plt
 import numpy as np
-import setuptools  # noqa: F401  # Provides distutils compatibility for batman on Python 3.12+
+try:
+    import setuptools  # noqa: F401  # Provides distutils compatibility for batman on Python 3.12+
+except ImportError:
+    pass
 
-batman = importlib.import_module("batman")
+# Ensure repository root is on sys.path so daneel can be imported
+_pkg_root = Path(__file__).resolve().parents[2]
+if str(_pkg_root) not in sys.path:
+    sys.path.insert(0, str(_pkg_root))
+
+try:
+    batman = importlib.import_module("batman")
+except ImportError:
+    batman = None
 
 # Default target parameters: HD 209458 b
 PLANET_NAME = "HD 209458 b"
@@ -181,6 +193,10 @@ def build_batman_params(custom_params=None):
     -------
     params : batman.TransitParams
     """
+    if batman is None:
+        raise ImportError(
+            "batman-package is required for transit modelling. Install it with 'pip install batman-package'."
+        )
     p_dict = dict(DEFAULT_PARAMS)
     if custom_params:
         p_dict.update(custom_params)
@@ -403,7 +419,36 @@ def save_transit_animation(
     print(f"Transit animation GIF saved to: {output_file}")
 
 
-def run_for_planet(planet_name: str = PLANET_NAME, from_archive: bool = True, output_suffix: str = "light_curve"):
+def load_params_from_yaml(config_file: str | Path):
+    """
+    Load transit parameters from a YAML file.
+
+    Supports both a nested 'transit:' block and a flat dictionary.
+
+    Returns
+    -------
+    planet_name : str
+    params_dict : dict
+    """
+    from daneel.parameters import Parameters
+
+    cfg_path = Path(config_file)
+    if not cfg_path.is_file():
+        raise FileNotFoundError(f"Configuration file not found: {cfg_path}")
+
+    loaded = Parameters(cfg_path).params
+    params_dict = loaded.get("transit", loaded)
+    planet_name = loaded.get("planet") or params_dict.get("planet") or cfg_path.stem
+    return str(planet_name), params_dict
+
+
+def run_for_planet(
+    planet_name: str = PLANET_NAME,
+    from_archive: bool = True,
+    output_suffix: str = "light_curve",
+    config_file: str | Path | None = None,
+    output_file: str | Path | None = None,
+):
     """
     Orchestrate parameter fetching, static light curve plotting, and GIF animation.
 
@@ -412,12 +457,35 @@ def run_for_planet(planet_name: str = PLANET_NAME, from_archive: bool = True, ou
     planet_name : str, optional
     from_archive : bool, optional
     output_suffix : str, optional
+    config_file : str or Path, optional
+        Path to YAML parameter file containing transit parameters.
+    output_file : str or Path, optional
+        Output path for the static light curve image.
     """
     slug = get_planet_slug(planet_name)
     source_ref = "Southworth (2010)"
     trandur_days = None
 
-    if from_archive and planet_name.lower() != "default":
+    if config_file is not None:
+        cfg_name, params_dict = load_params_from_yaml(config_file)
+        if planet_name == PLANET_NAME:
+            planet_name = cfg_name
+            slug = get_planet_slug(planet_name)
+
+        params = build_batman_params(params_dict)
+        source_ref = f"YAML config ({Path(config_file).name})"
+
+        # Analytical approximation for transit duration
+        b = params.a * np.cos(np.radians(params.inc))
+        if b < 1.0 + params.rp:
+            arg = max(0.0, (1.0 + params.rp) ** 2 - b ** 2)
+            trandur_days = (params.per / np.pi) * (1.0 / params.a) * np.sqrt(arg) / max(0.01, np.sin(np.radians(params.inc)))
+        else:
+            trandur_days = 0.1
+
+        print(f"Loaded parameters from '{config_file}' for target '{planet_name}':")
+        print(f"  Period: {params.per:.5f} d | Rp/R*: {params.rp:.5f} | a/R*: {params.a:.2f} | inc: {params.inc:.2f}°")
+    elif from_archive and planet_name.lower() != "default":
         print(f"Querying NASA Exoplanet Archive for '{planet_name}'...")
         try:
             official_name, params_dict, trandur_days, source_ref = fetch_planet_from_archive(planet_name)
@@ -443,8 +511,15 @@ def run_for_planet(planet_name: str = PLANET_NAME, from_archive: bool = True, ou
 
     t_grid = np.linspace(-t_half, t_half, 1000)
 
+    # Output paths
+    if output_file is not None:
+        static_png = str(output_file)
+        anim_gif = f"{Path(output_file).stem}_transit.gif"
+    else:
+        static_png = f"{slug}_{output_suffix}.png"
+        anim_gif = f"{slug}_transit.gif"
+
     # 1. Static light curve
-    static_png = f"{slug}_{output_suffix}.png"
     plot_light_curve(
         output_file=static_png,
         params=params,
@@ -454,7 +529,6 @@ def run_for_planet(planet_name: str = PLANET_NAME, from_archive: bool = True, ou
     )
 
     # 2. Animation GIF
-    anim_gif = f"{slug}_transit.gif"
     save_transit_animation(
         output_file=anim_gif,
         params=params,
@@ -470,8 +544,18 @@ if __name__ == "__main__":
     parser.add_argument(
         "planet",
         nargs="?",
-        default=PLANET_NAME,
-        help=f"Target planet name (default: '{PLANET_NAME}'). Example: 'WASP-12 b', 'TRAPPIST-1 b'",
+        default=None,
+        help=f"Target planet name (default: '{PLANET_NAME}' or inferred from --config). Example: 'WASP-12 b', 'TRAPPIST-1 b'",
+    )
+    parser.add_argument(
+        "-i",
+        "-c",
+        "--input",
+        "--config",
+        dest="config",
+        type=str,
+        default=None,
+        help="Path to YAML parameter file containing transit parameters",
     )
     parser.add_argument(
         "--local",
@@ -483,10 +567,24 @@ if __name__ == "__main__":
         default="light_curve",
         help="Suffix for output PNG (default: 'light_curve')",
     )
+    parser.add_argument(
+        "-o",
+        "--output",
+        default=None,
+        help="Output image path for static light curve (default: <slug>_<suffix>.png)",
+    )
 
     args = parser.parse_args()
 
-    use_archive = not args.local
-    print(f"Running transit modelling for target: {args.planet}...")
-    run_for_planet(planet_name=args.planet, from_archive=use_archive, output_suffix=args.suffix)
+    planet = args.planet or PLANET_NAME
+    use_archive = not args.local and args.config is None
+    target_desc = f"config '{args.config}'" if args.config else f"planet '{planet}'"
+    print(f"Running transit modelling for {target_desc}...")
+    run_for_planet(
+        planet_name=planet,
+        from_archive=use_archive,
+        output_suffix=args.suffix,
+        config_file=args.config,
+        output_file=args.output,
+    )
     print("\nExecution completed successfully.")

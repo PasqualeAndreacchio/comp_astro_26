@@ -74,12 +74,16 @@ python src/daneel/detection/transit.py "TRAPPIST-1 b"
 python src/daneel/detection/transit.py "Kepler-7 b"
 python src/daneel/detection/transit.py "WASP-12 b"
 
+# Model transit using a YAML parameter file
+python src/daneel/detection/transit.py -c examples/wasp43b_params.yaml
+
 # Customise static PNG suffix (e.g. produces WASP_12_b_taskG.png)
 python src/daneel/detection/transit.py "WASP-12 b" --suffix taskG
 ```
 
 Command-line options for `transit.py`:
-- `planet`: Target exoplanet name (e.g. `'TRAPPIST-1 b'`, `'WASP-12 b'`; default: `'HD 209458 b'`)
+- `planet`: Target exoplanet name (e.g. `'TRAPPIST-1 b'`, `'WASP-12 b'`; default: `'HD 209458 b'` or inferred from `--config`)
+- `-i, -c, --input, --config`: Path to YAML parameter file containing transit parameters
 - `--suffix`: Suffix for the generated static light curve PNG (default: `'light_curve'`)
 - `--local`: Force using local default parameters instead of querying the online archive
 
