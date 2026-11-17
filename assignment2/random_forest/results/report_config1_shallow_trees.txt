@@ -4,6 +4,7 @@ RANDOM FOREST EVALUATION REPORT
 
 MODEL HYPERPARAMETERS:
 --------------------------------------------------------------------------------
+  standardize       : False
   n_estimators      : 100
   max_depth         : 10
   min_samples_leaf  : 1
@@ -11,9 +12,8 @@ MODEL HYPERPARAMETERS:
   bootstrap         : True
   class_weight      : None
   random_state      : 42
-  standardize       : False
-  oob_score         : True
   n_jobs            : -1
+  oob_score         : True
 
 EVALUATION METRICS & PRECISION:
 --------------------------------------------------------------------------------

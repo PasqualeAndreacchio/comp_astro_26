@@ -1,11 +1,8 @@
-"""Classifier interfaces reserved for the detection course exercises."""
+"""Classifier interfaces for the detection course exercises."""
 
+from .random_forest import RandomForestClassifier, RandomForestDetection
 
-class RandomForestClassifier:
-    """Placeholder for the random-forest exercise."""
-
-    def fit(self, X, y):
-        raise NotImplementedError("Random-forest training is a course exercise")
+__all__ = ["RandomForestClassifier", "RandomForestDetection", "CNNClassifier"]
 
 
 class CNNClassifier:

@@ -38,9 +38,9 @@ daneel -i <input_file> --transit [--output lightcurve.png]
 
 - `-i, --input`: Input parameter file (required)
 - `-t, --transit`: Generate a transit light curve from the YAML input
-- `-d, --detect`: Reserved for the course detection exercise
+- `-d, --detection [METHOD]`: Run exoplanet detection using specified classifier (`rf` for Random Forest; default: `rf`)
 - `-a, --atmosphere`: Reserved for the course atmosphere exercise
-- `-o, --output`: Output path for the transit plot (default: `lc.png`)
+- `-o, --output`: Output path for transit plot (default: `<slug>_light_curve.png`) or evaluation report for detection
 
 ### Examples
 
@@ -54,11 +54,91 @@ daneel -i examples/HD_209458_b.yaml -t -o HD_209458_b_lightcurve.png
 # Run transit light curve with default examples parameters
 daneel -i examples/params.yaml --transit --output lightcurve.png
 
-# Run atmospheric characterization
-daneel -i examples/params.yaml --detect
+# Run Random Forest exoplanet detection
+daneel -i random_forest/parameters/config1_shallow_trees.yaml -d rf
+
+# Equivalent syntax with full flag name
+daneel -i random_forest/parameters/config1_shallow_trees.yaml --detection rf
+
+# Customise output evaluation report path
+daneel -i random_forest/parameters/config1_shallow_trees.yaml -d rf -o custom_report.txt
 
 # Run atmospheric analysis
 daneel -i examples/params.yaml --atmosphere
+```
+
+### Exoplanet Transit Detection (Random Forest)
+
+Daneel includes an end-to-end Machine Learning classification pipeline inside `daneel.detection` designed for binary transit detection (Planet vs Non-Planet) using TESS photometric light curves.
+
+#### Features
+- **Configurable YAML execution**: Model hyperparameters, data splitting, and output destinations can be fully defined in YAML.
+- **Photometric Data Augmentation**: Automatically balances the training set via Gaussian jitter, amplitude scaling, and transit phase roll to address severe astrophysical class imbalance.
+- **Pipeline Standardization**: scikit-learn `Pipeline` preventing data leakage with optional `StandardScaler`.
+- **Optimal Threshold Tuning**: Computes the optimal decision threshold using Youden's J statistic ($J = \text{TPR} - \text{FPR}$) alongside default 0.5 threshold evaluation.
+- **Comprehensive Logging & Reports**: Emits structured `INFO` logging, confusion matrix, precision metrics per class, and saves a clean evaluation report.
+
+#### CLI Usage
+
+```bash
+# Run Random Forest detection from a YAML parameter file
+daneel -i random_forest/parameters/config1_shallow_trees.yaml -d rf
+
+# Long-form flag
+daneel -i random_forest/parameters/config1_shallow_trees.yaml --detection rf
+```
+
+#### Python API Usage
+
+```python
+from daneel.detection import RandomForestDetection
+
+# Initialise from YAML configuration file and run end-to-end
+detector = RandomForestDetection(params="random_forest/parameters/config1_shallow_trees.yaml")
+detector.run(output_file="results/evaluation_report.txt")
+
+# Or run modularly step-by-step
+detector = RandomForestDetection(
+    csv_path="tess_data.csv",
+    n_estimators=300,
+    max_depth=15,
+    standardize=False,
+)
+detector.load_data()
+detector.fit()
+metrics = detector.evaluate()
+detector.display_statistics()
+detector.save_report("report.txt")
+```
+
+#### YAML Parameter Structure
+
+```yaml
+data:
+  csv_path: "tess_data.csv"           # Path to input light curve dataset
+  n_bins: 1000                        # Flux feature bins (flux_0000..flux_0999)
+  test_size: 0.2                      # Stratified test set ratio
+  balanced: true                      # Enable data augmentation balancing
+  samples_per_class: 350              # Target samples per class in training set
+  random_state: 42                    # Deterministic split seed
+
+model:
+  standardize: false                  # Whether to include StandardScaler
+  n_estimators: 100                   # Number of decision trees
+  max_depth: 10                       # Maximum tree depth
+  min_samples_leaf: 1                 # Minimum samples per leaf node
+  max_features: "sqrt"                # Number of features per split
+  bootstrap: true                     # Bootstrap sampling
+  class_weight: null                  # Class weighting scheme
+  random_state: 42                    # Ensemble random seed
+  n_jobs: -1                          # Parallel CPU workers
+  oob_score: true                     # Compute Out-of-Bag score
+
+output:
+  report_path: "random_forest/results/report_config1_shallow_trees.txt"
+
+logging:
+  level: "INFO"
 ```
 
 ### Automated Transit Modelling & NASA Archive Integration
