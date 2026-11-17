@@ -1,0 +1,22 @@
+# ==============================================================================
+# Configuration 3: Single-Tree Counterpart to RF Config 2 (depth=20, leaf=1)
+# ==============================================================================
+
+data:
+  csv_path: "tess_data.csv"
+  n_bins: 1000
+  samples_per_class: 350
+
+model:
+  name: "Config 3: RF-Matched Tree (depth=20, leaf=1)"
+  standardize: false
+  criterion: "gini"
+  max_depth: 20
+  min_samples_split: 2
+  min_samples_leaf: 1
+  max_features: null
+  ccp_alpha: 0.0
+  random_state: 42
+
+output:
+  report_path: "decision_tree/results/report_config3_rf_matched_depth20.txt"

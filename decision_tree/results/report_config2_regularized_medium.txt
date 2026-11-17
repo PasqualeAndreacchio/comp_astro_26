@@ -1,0 +1,65 @@
+================================================================================
+DECISION TREE EVALUATION REPORT - Config 2: Regularized Medium Tree (depth=10, leaf=10)
+================================================================================
+
+MODEL HYPERPARAMETERS & TREE STRUCTURE:
+--------------------------------------------------------------------------------
+  criterion         : gini
+  max_depth         : 10
+  min_samples_split : 2
+  min_samples_leaf  : 10
+  max_features      : None
+  ccp_alpha         : 0.0
+  standardize       : False
+  random_state      : 42
+  fitted_depth      : 10
+  n_leaves          : 30
+  train / test size : 700 / 189
+  ROC-AUC Score     : 0.8450
+
+METRICS AT DEFAULT THRESHOLD (p >= 0.5000):
+--------------------------------------------------------------------------------
+  Precision (Planet)     : 0.7738 (77.38%)
+  Precision (Non-Planet) : 0.7238 (72.38%)
+  Precision (Macro Avg)  : 0.7488 (74.88%)
+  Recall (Planet)        : 0.6915 (69.15%)
+  Accuracy               : 74.60%
+
+CONFUSION MATRIX (Default Threshold 0.5000):
+                       Predicted Non-Planet    Predicted Planet
+  Actual Non-Planet :        76                    19                
+  Actual Planet     :        29                    65                
+
+CLASSIFICATION REPORT (Default Threshold 0.5000):
+              precision    recall  f1-score   support
+
+  Non-Planet     0.7238    0.8000    0.7600        95
+      Planet     0.7738    0.6915    0.7303        94
+
+    accuracy                         0.7460       189
+   macro avg     0.7488    0.7457    0.7452       189
+weighted avg     0.7487    0.7460    0.7452       189
+
+METRICS AT OPTIMAL THRESHOLD (Youden's J = 0.2105):
+--------------------------------------------------------------------------------
+  Precision (Planet)     : 0.7961 (79.61%)
+  Precision (Non-Planet) : 0.8605 (86.05%)
+  Precision (Macro Avg)  : 0.8283 (82.83%)
+  Recall (Planet)        : 0.8723 (87.23%)
+  Accuracy               : 82.54%
+
+CONFUSION MATRIX (Optimal Youden's J Threshold):
+                       Predicted Non-Planet    Predicted Planet
+  Actual Non-Planet :        74                    21                
+  Actual Planet     :        12                    82                
+
+CLASSIFICATION REPORT (Optimal Youden's J Threshold):
+              precision    recall  f1-score   support
+
+  Non-Planet     0.8605    0.7789    0.8177        95
+      Planet     0.7961    0.8723    0.8325        94
+
+    accuracy                         0.8254       189
+   macro avg     0.8283    0.8256    0.8251       189
+weighted avg     0.8285    0.8254    0.8250       189
+================================================================================

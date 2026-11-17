@@ -1,0 +1,194 @@
+============================================================================================
+ASSIGNMENT 2 - TASK E: DECISION TREE EXOPLANET CLASSIFICATION REPORT
+============================================================================================
+
+EXPERIMENTAL SETUP & SPLIT CONSISTENCY WITH TASK D:
+--------------------------------------------------------------------------------------------
+  Dataset          : tess_data.csv (944 samples, 1000 flux bins)
+  Train/Test Split : Stratified 80/20 (random_state=42) -> 755 train / 189 test
+  Test Distribution: 95 Non-Planet (class 0), 94 Planet (class 1)
+  Train Balancing  : daneel.detection.data_process.load_data
+                     (samples_per_class=350, random_state=42 -> 700 train samples)
+  Standardization  : Disabled (use_scaler=False), as tree splits are invariant
+                     to monotonic feature scaling (consistent with Task D)
+
+============================================================================================
+Config 1: Pruned Shallow Tree (depth=5, leaf=5)
+============================================================================================
+MODEL HYPERPARAMETERS & TREE STRUCTURE:
+--------------------------------------------------------------------------------------------
+  criterion         : gini
+  max_depth         : 5 (fitted depth: 5)
+  min_samples_leaf  : 5
+  min_samples_split : 2
+  n_leaves          : 25
+  random_state      : 42
+  ROC-AUC Score     : 0.7964
+
+CONFUSION MATRIX & PRECISION (Default Threshold p >= 0.5000):
+--------------------------------------------------------------------------------------------
+                       Predicted Non-Planet    Predicted Planet
+  Actual Non-Planet :        82                    13                
+  Actual Planet     :        23                    71                
+
+  Precision (Planet)     : 0.8452 (84.52%)
+  Precision (Non-Planet) : 0.7810 (78.10%)
+  Precision (Macro Avg)  : 0.8131 (81.31%)
+  Recall (Planet)        : 0.7553 (75.53%)
+  Accuracy               : 80.95%
+
+CONFUSION MATRIX & PRECISION (Optimal Youden's J Threshold = 0.0909):
+--------------------------------------------------------------------------------------------
+                       Predicted Non-Planet    Predicted Planet
+  Actual Non-Planet :        76                    19                
+  Actual Planet     :        15                    79                
+
+  Precision (Planet)     : 0.8061 (80.61%)
+  Precision (Non-Planet) : 0.8352 (83.52%)
+  Precision (Macro Avg)  : 0.8206 (82.06%)
+  Recall (Planet)        : 0.8404 (84.04%)
+  Accuracy               : 82.01%
+
+============================================================================================
+Config 2: Regularized Medium Tree (depth=10, leaf=10)
+============================================================================================
+MODEL HYPERPARAMETERS & TREE STRUCTURE:
+--------------------------------------------------------------------------------------------
+  criterion         : gini
+  max_depth         : 10 (fitted depth: 10)
+  min_samples_leaf  : 10
+  min_samples_split : 2
+  n_leaves          : 30
+  random_state      : 42
+  ROC-AUC Score     : 0.8450
+
+CONFUSION MATRIX & PRECISION (Default Threshold p >= 0.5000):
+--------------------------------------------------------------------------------------------
+                       Predicted Non-Planet    Predicted Planet
+  Actual Non-Planet :        76                    19                
+  Actual Planet     :        29                    65                
+
+  Precision (Planet)     : 0.7738 (77.38%)
+  Precision (Non-Planet) : 0.7238 (72.38%)
+  Precision (Macro Avg)  : 0.7488 (74.88%)
+  Recall (Planet)        : 0.6915 (69.15%)
+  Accuracy               : 74.60%
+
+CONFUSION MATRIX & PRECISION (Optimal Youden's J Threshold = 0.2105):
+--------------------------------------------------------------------------------------------
+                       Predicted Non-Planet    Predicted Planet
+  Actual Non-Planet :        74                    21                
+  Actual Planet     :        12                    82                
+
+  Precision (Planet)     : 0.7961 (79.61%)
+  Precision (Non-Planet) : 0.8605 (86.05%)
+  Precision (Macro Avg)  : 0.8283 (82.83%)
+  Recall (Planet)        : 0.8723 (87.23%)
+  Accuracy               : 82.54%
+
+============================================================================================
+Config 3: RF-Matched Tree (depth=20, leaf=1)
+============================================================================================
+MODEL HYPERPARAMETERS & TREE STRUCTURE:
+--------------------------------------------------------------------------------------------
+  criterion         : gini
+  max_depth         : 20 (fitted depth: 12)
+  min_samples_leaf  : 1
+  min_samples_split : 2
+  n_leaves          : 62
+  random_state      : 42
+  ROC-AUC Score     : 0.7297
+
+CONFUSION MATRIX & PRECISION (Default Threshold p >= 0.5000):
+--------------------------------------------------------------------------------------------
+                       Predicted Non-Planet    Predicted Planet
+  Actual Non-Planet :        77                    18                
+  Actual Planet     :        33                    61                
+
+  Precision (Planet)     : 0.7722 (77.22%)
+  Precision (Non-Planet) : 0.7000 (70.00%)
+  Precision (Macro Avg)  : 0.7361 (73.61%)
+  Recall (Planet)        : 0.6489 (64.89%)
+  Accuracy               : 73.02%
+
+CONFUSION MATRIX & PRECISION (Optimal Youden's J Threshold = 1.0000):
+--------------------------------------------------------------------------------------------
+                       Predicted Non-Planet    Predicted Planet
+  Actual Non-Planet :        77                    18                
+  Actual Planet     :        33                    61                
+
+  Precision (Planet)     : 0.7722 (77.22%)
+  Precision (Non-Planet) : 0.7000 (70.00%)
+  Precision (Macro Avg)  : 0.7361 (73.61%)
+  Recall (Planet)        : 0.6489 (64.89%)
+  Accuracy               : 73.02%
+
+============================================================================================
+Config 4: Entropy Tree (depth=None, leaf=5)
+============================================================================================
+MODEL HYPERPARAMETERS & TREE STRUCTURE:
+--------------------------------------------------------------------------------------------
+  criterion         : entropy
+  max_depth         : None (fitted depth: 10)
+  min_samples_leaf  : 5
+  min_samples_split : 2
+  n_leaves          : 39
+  random_state      : 42
+  ROC-AUC Score     : 0.7930
+
+CONFUSION MATRIX & PRECISION (Default Threshold p >= 0.5000):
+--------------------------------------------------------------------------------------------
+                       Predicted Non-Planet    Predicted Planet
+  Actual Non-Planet :        77                    18                
+  Actual Planet     :        25                    69                
+
+  Precision (Planet)     : 0.7931 (79.31%)
+  Precision (Non-Planet) : 0.7549 (75.49%)
+  Precision (Macro Avg)  : 0.7740 (77.40%)
+  Recall (Planet)        : 0.7340 (73.40%)
+  Accuracy               : 77.25%
+
+CONFUSION MATRIX & PRECISION (Optimal Youden's J Threshold = 0.3333):
+--------------------------------------------------------------------------------------------
+                       Predicted Non-Planet    Predicted Planet
+  Actual Non-Planet :        73                    22                
+  Actual Planet     :        20                    74                
+
+  Precision (Planet)     : 0.7708 (77.08%)
+  Precision (Non-Planet) : 0.7849 (78.49%)
+  Precision (Macro Avg)  : 0.7779 (77.79%)
+  Recall (Planet)        : 0.7872 (78.72%)
+  Accuracy               : 77.78%
+
+============================================================================================
+COMPARISON WITH TASK D (RANDOM FOREST)
+============================================================================================
+
+1. Decision Tree Configurations Summary:
+--------------------------------------------------------------------------------------------
+   Configuration                                        Prec(P)@0.5  Acc@0.5  Prec(P)@Opt  Prec(NP)@Opt  MacroPrec@Opt  Rec(P)@Opt  Acc@Opt  ROC-AUC
+   -----------------------------------------------------------------------------------------------------------------------------------------------
+   Config 1: Pruned Shallow Tree (depth=5, leaf=5)         84.52%       80.95%    80.61%        83.52%         82.06%          84.04%       82.01%   0.7964
+   Config 2: Regularized Medium Tree (depth=10, leaf=10)   77.38%       74.60%    79.61%        86.05%         82.83%          87.23%       82.54%   0.8450
+   Config 3: RF-Matched Tree (depth=20, leaf=1)            77.22%       73.02%    77.22%        70.00%         73.61%          64.89%       73.02%   0.7297
+   Config 4: Entropy Tree (depth=None, leaf=5)             79.31%       77.25%    77.08%        78.49%         77.79%          78.72%       77.78%   0.7930
+
+2. Task D Random Forest Benchmarks (same 189 test samples):
+--------------------------------------------------------------------------------------------
+   Configuration                                        Acc@0.5  Prec(P)@Opt  Prec(NP)@Opt  MacroPrec@Opt  Rec(P)@Opt  Acc@Opt  ROC-AUC
+   -----------------------------------------------------------------------------------------------------------------------------------
+   RF Config 1 (100, depth=10)                             83.60%    79.31%        97.26%         88.29%          97.87%       86.24%   0.8837
+   RF Config 2 (300, depth=20) [Best]                      84.66%    78.81%        98.59%         88.70%          98.94%       86.24%   0.8885
+   RF Config 3 (500, depth=30)                             83.60%    78.81%        98.59%         88.70%          98.94%       86.24%   0.8926
+   RF Config 4 (500, depth=None)                           83.60%    78.81%        98.59%         88.70%          98.94%       86.24%   0.8926
+
+3. Summary Comparison:
+--------------------------------------------------------------------------------------------
+   - Best Decision Tree by ROC-AUC: Config 2: Regularized Medium Tree (depth=10, leaf=10) (ROC-AUC = 0.8450, Prec(P)@Opt = 79.61%).
+   - Best Task D Random Forest: RF Config 2 (300, depth=20) [Best] (ROC-AUC = 0.8885, Prec(P)@Opt = 78.81%).
+   - Direct Single-Tree vs Ensemble Comparison (both depth=20, min_samples_leaf=1):
+     * 1 Decision Tree  -> Acc@0.5 = 73.02%, ROC-AUC = 0.7297
+     * 300-Tree RF      -> Acc@0.5 = 84.66%, ROC-AUC = 0.8885
+     * Ensemble Gain    -> +11.64 pp Accuracy@0.5, +0.1588 ROC-AUC.
+   - Best Regularized Tree vs Best RF: ROC-AUC delta = -0.0435, Accuracy@0.5 delta = -10.06 pp.
+============================================================================================

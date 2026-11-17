@@ -1,0 +1,22 @@
+# ==============================================================================
+# Configuration 1: Pruned Shallow Decision Tree (max_depth=5, min_samples_leaf=5)
+# ==============================================================================
+
+data:
+  csv_path: "tess_data.csv"
+  n_bins: 1000
+  samples_per_class: 350
+
+model:
+  name: "Config 1: Pruned Shallow Tree (depth=5, leaf=5)"
+  standardize: false
+  criterion: "gini"
+  max_depth: 5
+  min_samples_split: 2
+  min_samples_leaf: 5
+  max_features: null
+  ccp_alpha: 0.0
+  random_state: 42
+
+output:
+  report_path: "decision_tree/results/report_config1_pruned_shallow.txt"
