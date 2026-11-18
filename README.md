@@ -26,6 +26,48 @@ pip install .
 pip install -e '.[dev,docs]'
 ```
 
+## Project Structure
+
+The repository is organized into modular packages separating the command-line interface, analytical transit physics, machine learning detection pipelines, parameter parsing, and shared utilities:
+
+```text
+comp_astro_26/
+├── src/
+│   └── daneel/
+│       ├── __init__.py           # Package initialization and top-level exports
+│       ├── __main__.py           # CLI entry point (daneel -i ... -t / -d)
+│       ├── detection/            # Transit modeling & ML detection subpackage
+│       │   ├── __init__.py       # Exports detectors and modeling functions
+│       │   ├── base.py           # BaseTransitDetector (abstract lifecycle & evaluation)
+│       │   ├── random_forest.py  # RandomForestDetection (scikit-learn pipeline)
+│       │   ├── cnn.py            # CNNDetection (1D PyTorch ConvNet pipeline)
+│       │   ├── data_process.py   # Dataset loading, stratified splitting & augmentation
+│       │   ├── transit.py        # NASA Exoplanet Archive queries & transit animations
+│       │   ├── transit_model.py  # BATMAN-based transit analytical light curves
+│       │   └── classifiers.py    # Detection interfaces and aliases
+│       ├── parameters/           # Configuration handling
+│       │   ├── __init__.py
+│       │   └── parameters.py     # Parameters class for YAML loading & sanitization
+│       └── utils/                # Shared cross-cutting utilities
+│           ├── __init__.py
+│           └── utils.py          # Logging setup, deep_merge, and config normalization
+├── docs/                         # Sphinx documentation source and build configuration
+├── examples/                     # Course example YAML configurations and targets
+├── tests/                        # Test suite (pytest)
+├── pyproject.toml                # Package metadata, entry points, and dependencies
+└── README.md                     # Project overview and documentation
+```
+
+### Module Overview & Architecture
+
+- **`daneel.detection.base` (`BaseTransitDetector`)**: An abstract base class (`ABC`) defining the standard end-to-end detection lifecycle (`load_data` → `build_model` → `fit` → `evaluate` → `display_statistics` → `save_report`). It encapsulates optimal decision threshold tuning via Youden's J statistic, ROC-AUC, classification metrics, confusion matrices, and file exports, while exposing extensible lifecycle hooks for subclass customization.
+- **`daneel.detection.random_forest` (`RandomForestDetection`)**: Inherits from `BaseTransitDetector`. Builds a scikit-learn `Pipeline` (with optional `StandardScaler` and `RandomForestClassifier`), fits the ensemble on light curve features, predicts probabilities, and hooks Out-of-Bag (OOB) generalization scores into statistics and reports.
+- **`daneel.detection.cnn` (`CNNDetection`)**: Inherits from `BaseTransitDetector`. Builds a 1D Convolutional Neural Network (`_Conv1DBlock` backbone with pooling, followed by a dropout-regularized fully-connected head), manages GPU/CPU training with cosine annealing and positive-class weighting, and hooks epoch loss/accuracy curves into reporting.
+- **`daneel.detection.data_process`**: Centralized data management module providing `load_data` (stratified train/test splits, light curve binning), `create_balanced_dataset` (photometric data augmentation via phase roll, amplitude scaling, and Gaussian jitter), and `resolve_file_path`.
+- **`daneel.detection.transit` & `transit_model`**: Analytical transit modeling routines. `transit.py` queries the NASA Exoplanet Archive TAP API to fetch physical parameters, generates transit light curves, and renders synchronized sky-plane transit animations. `transit_model.py` provides `batman`-based analytical modeling.
+- **`daneel.utils.utils`**: Shared helper functions supporting the pipeline: `setup_logging` (uniform application-wide logging), `deep_merge` (recursive dictionary merging), and `normalize_config` (flexible YAML normalization supporting nested, flat, or wrapped schemas).
+- **`daneel.parameters.parameters`**: Provides the `Parameters` class for YAML file loading, type validation, and sanitization.
+
 ## Usage
 
 After installation, you can run daneel from the command line:
