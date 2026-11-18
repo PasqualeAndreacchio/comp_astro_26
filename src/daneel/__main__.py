@@ -2,6 +2,7 @@ import argparse
 from datetime import datetime, timezone
 
 from daneel.detection.random_forest import RandomForestDetection
+from daneel.detection.cnn import CNNDetection
 from daneel.detection.transit import run_for_planet
 
 
@@ -27,7 +28,11 @@ def main():
         nargs="?",
         const="rf",
         default=None,
-        help="Run exoplanet detection using specified classifier (e.g., -d rf or --detection rf)",
+        help=(
+            "Run exoplanet detection using the specified classifier. "
+            "Supported values: 'rf' (Random Forest, default) or 'cnn' (Convolutional Neural Network). "
+            "Example: -d rf  or  -d cnn"
+        ),
     )
     actions.add_argument("-a", "--atmosphere", action="store_true", help="Run atmospheric characterisation")
     parser.add_argument(
@@ -39,7 +44,6 @@ def main():
 
     args = parser.parse_args()
 
-    """Launch Daneel"""
     start = datetime.now(timezone.utc)
 
     if args.transit:
@@ -49,9 +53,13 @@ def main():
         if method in ("rf", "random_forest", "randomforest"):
             detector = RandomForestDetection(params=args.input_file)
             detector.run(output_file=args.output)
+        elif method in ("cnn", "convnet", "conv", "deep_learning", "dl"):
+            detector = CNNDetection(params=args.input_file)
+            detector.run(output_file=args.output)
         else:
             parser.error(
-                f"Detection method '{args.detection}' is not implemented yet; use '-d rf' or '--detection rf'"
+                f"Detection method '{args.detection}' is not supported. "
+                "Use '-d rf' (Random Forest) or '-d cnn' (Convolutional Neural Network)."
             )
     elif args.atmosphere:
         parser.error("atmospheric characterisation is not implemented yet; use --transit")

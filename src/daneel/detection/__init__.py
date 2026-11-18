@@ -5,3 +5,8 @@ from .random_forest import (
     RandomForestClassifier,
     RandomForest,
 )
+from .cnn import (
+    CNNDetection,
+    CNNClassifier,
+    CNN,
+)

@@ -1,0 +1,37 @@
+# ==============================================================================
+# CNN Configuration: Default architecture
+# ==============================================================================
+
+# Data ingestion, splitting, and augmentation parameters
+data:
+  csv_path: "tess_data.csv"           # Path to the input light-curve CSV dataset
+  n_bins: 1000                        # Number of flux feature bins (flux_0000..flux_0999)
+  test_size: 0.2                      # Proportion of the dataset allocated to the test set
+  balanced: true                      # Whether to balance the training set with data augmentation
+  samples_per_class: 350              # Target samples per class when balancing the training set
+  random_state: 42                    # Deterministic seed ensuring reproducible splits
+
+# CNN architecture and training hyperparameters
+model:
+  # Architecture
+  conv_channels: [16, 32, 64]         # Out-channels for each Conv1D block (depth of the backbone)
+  kernel_size: 7                      # Convolution kernel width (odd value recommended for symmetric padding)
+  pool_size: 2                        # MaxPool1d window size applied after each Conv1D block
+  fc_units: [128, 64]                 # Number of units in each fully-connected layer of the head
+  dropout: 0.3                        # Dropout probability applied before each FC layer
+
+  # Training
+  batch_size: 128                      # Number of samples per gradient update
+  epochs: 150                          # Total number of training epochs
+  learning_rate: 0.001                # Initial learning rate for Adam optimiser
+  weight_decay: 0.0001                # L2 regularisation strength (Adam weight_decay)
+  random_state: 42                    # Global random seed for PyTorch and NumPy
+
+# Output paths
+output:
+  report_path: "cnn/results/report_default.txt"   # Where to write the evaluation report
+  model_path: null                                 # Set to a .pt path to save trained weights
+
+# Logging configuration
+logging:
+  level: "INFO"                       # Logging severity level: DEBUG, INFO, WARNING, ERROR

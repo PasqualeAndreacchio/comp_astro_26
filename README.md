@@ -38,7 +38,7 @@ daneel -i <input_file> --transit [--output lightcurve.png]
 
 - `-i, --input`: Input parameter file (required)
 - `-t, --transit`: Generate a transit light curve from the YAML input
-- `-d, --detection [METHOD]`: Run exoplanet detection using specified classifier (`rf` for Random Forest; default: `rf`)
+- `-d, --detection [METHOD]`: Run exoplanet detection using specified classifier (`rf` for Random Forest, `cnn` for Convolutional Neural Network; default: `rf`)
 - `-a, --atmosphere`: Reserved for the course atmosphere exercise
 - `-o, --output`: Output path for transit plot (default: `<slug>_light_curve.png`) or evaluation report for detection
 
@@ -62,6 +62,15 @@ daneel -i random_forest/parameters/config1_shallow_trees.yaml --detection rf
 
 # Customise output evaluation report path
 daneel -i random_forest/parameters/config1_shallow_trees.yaml -d rf -o custom_report.txt
+
+# Run CNN exoplanet detection
+daneel -i cnn/parameters/config_default.yaml -d cnn
+
+# Equivalent syntax with full flag name
+daneel -i cnn/parameters/config_default.yaml --detection cnn
+
+# Customise output evaluation report path for CNN
+daneel -i cnn/parameters/config_default.yaml -d cnn -o custom_cnn_report.txt
 
 # Run atmospheric analysis
 daneel -i examples/params.yaml --atmosphere
@@ -136,6 +145,90 @@ model:
 
 output:
   report_path: "random_forest/results/report_config1_shallow_trees.txt"
+
+logging:
+  level: "INFO"
+```
+
+### Exoplanet Transit Detection (Convolutional Neural Network — CNN)
+
+Daneel includes an end-to-end Deep Learning 1D-CNN pipeline inside `daneel.detection` designed for binary transit detection (Planet vs Non-Planet) using folded, phase-binned photometric light curves.
+
+#### Features
+- **Configurable YAML execution**: Data splitting, augmentation, convolutional network backbone, fully-connected head, and training hyperparameters can be fully defined in YAML.
+- **Photometric Data Augmentation**: Automatically balances the training set via Gaussian jitter, amplitude scaling, and transit phase roll to address severe astrophysical class imbalance.
+- **Deep 1D Convolutional Architecture**: Configurable stack of `Conv1d` → `BatchNorm1d` → `ReLU` → `MaxPool1d` feature extraction blocks followed by fully-connected layers with Dropout and `BCEWithLogitsLoss`.
+- **Optimal Threshold Tuning**: Computes the optimal decision threshold using Youden's J statistic ($J = \text{TPR} - \text{FPR}$) alongside default 0.5 threshold evaluation.
+- **Comprehensive Logging & Reports**: Emits structured `INFO` logging (with training progress printed every 10 epochs), confusion matrix, precision metrics per class, and saves a clean evaluation report.
+
+#### CLI Usage
+
+```bash
+# Run CNN detection from a YAML parameter file
+daneel -i cnn/parameters/config_default.yaml -d cnn
+
+# Long-form flag
+daneel -i cnn/parameters/config_default.yaml --detection cnn
+
+# Customise output evaluation report path
+daneel -i cnn/parameters/config_default.yaml -d cnn -o cnn/results/report_default.txt
+```
+
+#### Python API Usage
+
+```python
+from daneel.detection import CNNDetection
+
+# Initialise from YAML configuration file and run end-to-end
+detector = CNNDetection(params="cnn/parameters/config_default.yaml")
+detector.run(output_file="results/cnn_evaluation_report.txt")
+
+# Or run modularly step-by-step
+detector = CNNDetection(
+    csv_path="tess_data.csv",
+    conv_channels=[16, 32, 64],
+    kernel_size=7,
+    pool_size=2,
+    fc_units=[128, 64],
+    dropout=0.3,
+    batch_size=32,
+    epochs=30,
+    learning_rate=0.001,
+)
+detector.load_data()
+detector.build_model()
+detector.fit()
+metrics = detector.evaluate()
+detector.display_statistics()
+detector.save_report("report.txt")
+```
+
+#### YAML Parameter Structure
+
+```yaml
+data:
+  csv_path: "tess_data.csv"           # Path to input light curve dataset
+  n_bins: 1000                        # Flux feature bins (flux_0000..flux_0999)
+  test_size: 0.2                      # Stratified test set ratio
+  balanced: true                      # Enable data augmentation balancing
+  samples_per_class: 350              # Target samples per class in training set
+  random_state: 42                    # Deterministic split seed
+
+model:
+  conv_channels: [16, 32, 64]         # Out-channels for each Conv1D block
+  kernel_size: 7                      # Convolution kernel width
+  pool_size: 2                        # MaxPool1d window size
+  fc_units: [128, 64]                 # Fully-connected layer widths
+  dropout: 0.3                        # Dropout probability
+  batch_size: 32                      # Training batch size
+  epochs: 30                          # Total training epochs
+  learning_rate: 0.001                # Adam initial learning rate
+  weight_decay: 0.0001                # L2 regularisation strength
+  random_state: 42                    # Deterministic seed for PyTorch and NumPy
+
+output:
+  report_path: "cnn/results/report_default.txt"   # Output evaluation report path
+  model_path: null                                 # Optional path to save model weights (.pt)
 
 logging:
   level: "INFO"
