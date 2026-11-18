@@ -1,0 +1,246 @@
+================================================================================================
+ASSIGNMENT 2 - TASK F: 1D CNN EXOPLANET TRANSIT CLASSIFICATION REPORT
+================================================================================================
+
+EXPERIMENTAL SETUP & SPLIT CONSISTENCY WITH TASKS D & E:
+------------------------------------------------------------------------------------------------
+  Dataset            : tess_data.csv (944 samples, 1000 flux bins)
+  Train/Test Split   : Stratified 80/20 (random_state=42) -> 755 train / 189 test
+  Test Distribution  : 95 Non-Planet (class 0), 94 Planet (class 1)
+  Train Balancing    : daneel.detection.data_process.load_data
+                       (samples_per_class=350, random_state=42 -> 700 train samples)
+  Internal Val Split : Stratified 80/20 on balanced train (560 train / 140 val)
+                       used for EarlyStopping & ReduceLROnPlateau (X_test kept unseen)
+  Standardization    : Enabled (use_scaler=True, StandardScaler fit on training set)
+  Reference Notebook : transit_analysis_deep_learning.ipynb (implemented in PyTorch)
+
+================================================================================================
+Config 1: Default CNN (64-128-256, Dense 512-256-128)
+================================================================================================
+NEURAL NETWORK ARCHITECTURE:
+------------------------------------------------------------------------------------------------
+  Input           : (batch, 1, 1000)
+  Conv Block 1    : Conv1d(1->64, k=3, pad=1, relu) -> BatchNorm1d(64) -> MaxPool1d(2) -> Dropout(0.30) [out: (64, 500)]
+  Conv Block 2    : Conv1d(64->128, k=3, pad=1, relu) -> BatchNorm1d(128) -> MaxPool1d(2) -> Dropout(0.30) [out: (128, 250)]
+  Conv Block 3    : Conv1d(128->256, k=3, pad=1, relu) -> BatchNorm1d(256) -> GlobalAvgPool1d -> Dropout(0.40) [out: (256, 1)]
+  Flatten         : (256,)
+  Dense Block 1   : Linear(256->512, relu, L2=0.001) -> Dropout(0.20)
+  Dense Block 2   : Linear(512->256, relu, L2=0.001) -> Dropout(0.20)
+  Dense Block 3   : Linear(256->128, relu, L2=0.001) -> Dropout(0.20)
+  Output Head     : Linear(128->1) + Sigmoid
+  Parameters      : 420,353 trainable / 420,353 total
+
+TRAINING HYPERPARAMETERS:
+------------------------------------------------------------------------------------------------
+  loss_function     : FocalLoss(gamma=2.5, alpha=0.75)
+  optimizer         : Adam (lr=0.0005, dense_l2=0.001)
+  batch_size        : 32
+  epochs            : max=120, stopped=75, best_val_epoch=55
+  best_val_roc_auc  : 0.8857
+  test_roc_auc      : 0.9003
+
+CONFUSION MATRIX & PRECISION (Default Threshold p >= 0.5000):
+------------------------------------------------------------------------------------------------
+                       Predicted Non-Planet    Predicted Planet
+  Actual Non-Planet :        18                    77                
+  Actual Planet     :        0                     94                
+
+  Precision (Planet)     : 0.5497 (54.97%)
+  Precision (Non-Planet) : 1.0000 (100.00%)
+  Precision (Macro Avg)  : 0.7749 (77.49%)
+  Recall (Planet)        : 1.0000 (100.00%)
+  F1-Score (Planet)      : 0.7094
+  Accuracy               : 59.26%
+
+CONFUSION MATRIX & PRECISION (Optimal Youden's J Threshold = 0.5462):
+------------------------------------------------------------------------------------------------
+                       Predicted Non-Planet    Predicted Planet
+  Actual Non-Planet :        85                    10                
+  Actual Planet     :        13                    81                
+
+  Precision (Planet)     : 0.8901 (89.01%)
+  Precision (Non-Planet) : 0.8673 (86.73%)
+  Precision (Macro Avg)  : 0.8787 (87.87%)
+  Recall (Planet)        : 0.8617 (86.17%)
+  F1-Score (Planet)      : 0.8757
+  Accuracy               : 87.83%
+
+================================================================================================
+Config 2: Compact CNN (32-64-128, Dense 128-64)
+================================================================================================
+NEURAL NETWORK ARCHITECTURE:
+------------------------------------------------------------------------------------------------
+  Input           : (batch, 1, 1000)
+  Conv Block 1    : Conv1d(1->32, k=3, pad=1, relu) -> BatchNorm1d(32) -> MaxPool1d(2) -> Dropout(0.30) [out: (32, 500)]
+  Conv Block 2    : Conv1d(32->64, k=3, pad=1, relu) -> BatchNorm1d(64) -> MaxPool1d(2) -> Dropout(0.30) [out: (64, 250)]
+  Conv Block 3    : Conv1d(64->128, k=3, pad=1, relu) -> BatchNorm1d(128) -> GlobalAvgPool1d -> Dropout(0.40) [out: (128, 1)]
+  Flatten         : (128,)
+  Dense Block 1   : Linear(128->128, relu, L2=0.001) -> Dropout(0.20)
+  Dense Block 2   : Linear(128->64, relu, L2=0.001) -> Dropout(0.20)
+  Output Head     : Linear(64->1) + Sigmoid
+  Parameters      : 56,321 trainable / 56,321 total
+
+TRAINING HYPERPARAMETERS:
+------------------------------------------------------------------------------------------------
+  loss_function     : FocalLoss(gamma=2.5, alpha=0.75)
+  optimizer         : Adam (lr=0.0005, dense_l2=0.001)
+  batch_size        : 32
+  epochs            : max=120, stopped=36, best_val_epoch=16
+  best_val_roc_auc  : 0.8531
+  test_roc_auc      : 0.8732
+
+CONFUSION MATRIX & PRECISION (Default Threshold p >= 0.5000):
+------------------------------------------------------------------------------------------------
+                       Predicted Non-Planet    Predicted Planet
+  Actual Non-Planet :        0                     95                
+  Actual Planet     :        0                     94                
+
+  Precision (Planet)     : 0.4974 (49.74%)
+  Precision (Non-Planet) : 0.0000 (0.00%)
+  Precision (Macro Avg)  : 0.2487 (24.87%)
+  Recall (Planet)        : 1.0000 (100.00%)
+  F1-Score (Planet)      : 0.6643
+  Accuracy               : 49.74%
+
+CONFUSION MATRIX & PRECISION (Optimal Youden's J Threshold = 0.6769):
+------------------------------------------------------------------------------------------------
+                       Predicted Non-Planet    Predicted Planet
+  Actual Non-Planet :        78                    17                
+  Actual Planet     :        10                    84                
+
+  Precision (Planet)     : 0.8317 (83.17%)
+  Precision (Non-Planet) : 0.8864 (88.64%)
+  Precision (Macro Avg)  : 0.8590 (85.90%)
+  Recall (Planet)        : 0.8936 (89.36%)
+  F1-Score (Planet)      : 0.8615
+  Accuracy               : 85.71%
+
+================================================================================================
+Config 3: Regularized CNN (High Dropout & L2=0.005)
+================================================================================================
+NEURAL NETWORK ARCHITECTURE:
+------------------------------------------------------------------------------------------------
+  Input           : (batch, 1, 1000)
+  Conv Block 1    : Conv1d(1->64, k=3, pad=1, relu) -> BatchNorm1d(64) -> MaxPool1d(2) -> Dropout(0.40) [out: (64, 500)]
+  Conv Block 2    : Conv1d(64->128, k=3, pad=1, relu) -> BatchNorm1d(128) -> MaxPool1d(2) -> Dropout(0.40) [out: (128, 250)]
+  Conv Block 3    : Conv1d(128->256, k=3, pad=1, relu) -> BatchNorm1d(256) -> GlobalAvgPool1d -> Dropout(0.50) [out: (256, 1)]
+  Flatten         : (256,)
+  Dense Block 1   : Linear(256->512, relu, L2=0.005) -> Dropout(0.40)
+  Dense Block 2   : Linear(512->256, relu, L2=0.005) -> Dropout(0.40)
+  Dense Block 3   : Linear(256->128, relu, L2=0.005) -> Dropout(0.30)
+  Output Head     : Linear(128->1) + Sigmoid
+  Parameters      : 420,353 trainable / 420,353 total
+
+TRAINING HYPERPARAMETERS:
+------------------------------------------------------------------------------------------------
+  loss_function     : FocalLoss(gamma=2.5, alpha=0.75)
+  optimizer         : Adam (lr=0.0005, dense_l2=0.005)
+  batch_size        : 32
+  epochs            : max=120, stopped=65, best_val_epoch=45
+  best_val_roc_auc  : 0.8353
+  test_roc_auc      : 0.8454
+
+CONFUSION MATRIX & PRECISION (Default Threshold p >= 0.5000):
+------------------------------------------------------------------------------------------------
+                       Predicted Non-Planet    Predicted Planet
+  Actual Non-Planet :        12                    83                
+  Actual Planet     :        0                     94                
+
+  Precision (Planet)     : 0.5311 (53.11%)
+  Precision (Non-Planet) : 1.0000 (100.00%)
+  Precision (Macro Avg)  : 0.7655 (76.55%)
+  Recall (Planet)        : 1.0000 (100.00%)
+  F1-Score (Planet)      : 0.6937
+  Accuracy               : 56.08%
+
+CONFUSION MATRIX & PRECISION (Optimal Youden's J Threshold = 0.6644):
+------------------------------------------------------------------------------------------------
+                       Predicted Non-Planet    Predicted Planet
+  Actual Non-Planet :        80                    15                
+  Actual Planet     :        21                    73                
+
+  Precision (Planet)     : 0.8295 (82.95%)
+  Precision (Non-Planet) : 0.7921 (79.21%)
+  Precision (Macro Avg)  : 0.8108 (81.08%)
+  Recall (Planet)        : 0.7766 (77.66%)
+  F1-Score (Planet)      : 0.8022
+  Accuracy               : 80.95%
+
+================================================================================================
+Config 4: Wide-Kernel CNN (k=5, Dense 256-128, lr=3e-4)
+================================================================================================
+NEURAL NETWORK ARCHITECTURE:
+------------------------------------------------------------------------------------------------
+  Input           : (batch, 1, 1000)
+  Conv Block 1    : Conv1d(1->64, k=5, pad=2, relu) -> BatchNorm1d(64) -> MaxPool1d(2) -> Dropout(0.25) [out: (64, 500)]
+  Conv Block 2    : Conv1d(64->128, k=5, pad=2, relu) -> BatchNorm1d(128) -> MaxPool1d(2) -> Dropout(0.25) [out: (128, 250)]
+  Conv Block 3    : Conv1d(128->256, k=5, pad=2, relu) -> BatchNorm1d(256) -> GlobalAvgPool1d -> Dropout(0.35) [out: (256, 1)]
+  Flatten         : (256,)
+  Dense Block 1   : Linear(256->256, relu, L2=0.001) -> Dropout(0.20)
+  Dense Block 2   : Linear(256->128, relu, L2=0.001) -> Dropout(0.20)
+  Output Head     : Linear(128->1) + Sigmoid
+  Parameters      : 305,281 trainable / 305,281 total
+
+TRAINING HYPERPARAMETERS:
+------------------------------------------------------------------------------------------------
+  loss_function     : FocalLoss(gamma=2.5, alpha=0.75)
+  optimizer         : Adam (lr=0.0003, dense_l2=0.001)
+  batch_size        : 32
+  epochs            : max=120, stopped=58, best_val_epoch=33
+  best_val_roc_auc  : 0.8735
+  test_roc_auc      : 0.8934
+
+CONFUSION MATRIX & PRECISION (Default Threshold p >= 0.5000):
+------------------------------------------------------------------------------------------------
+                       Predicted Non-Planet    Predicted Planet
+  Actual Non-Planet :        6                     89                
+  Actual Planet     :        0                     94                
+
+  Precision (Planet)     : 0.5137 (51.37%)
+  Precision (Non-Planet) : 1.0000 (100.00%)
+  Precision (Macro Avg)  : 0.7568 (75.68%)
+  Recall (Planet)        : 1.0000 (100.00%)
+  F1-Score (Planet)      : 0.6787
+  Accuracy               : 52.91%
+
+CONFUSION MATRIX & PRECISION (Optimal Youden's J Threshold = 0.6127):
+------------------------------------------------------------------------------------------------
+                       Predicted Non-Planet    Predicted Planet
+  Actual Non-Planet :        85                    10                
+  Actual Planet     :        13                    81                
+
+  Precision (Planet)     : 0.8901 (89.01%)
+  Precision (Non-Planet) : 0.8673 (86.73%)
+  Precision (Macro Avg)  : 0.8787 (87.87%)
+  Recall (Planet)        : 0.8617 (86.17%)
+  F1-Score (Planet)      : 0.8757
+  Accuracy               : 87.83%
+
+================================================================================================
+COMPARISON ACROSS CNN CONFIGURATIONS & TASKS D-E
+================================================================================================
+
+1. Task F CNN Configurations Summary (same 189 test samples):
+------------------------------------------------------------------------------------------------
+   Configuration                                             Params    Prec(P)@0.5  Acc@0.5  Prec(P)@Opt  Prec(NP)@Opt  MacroPrec@Opt  Rec(P)@Opt  Acc@Opt  ROC-AUC
+   --------------------------------------------------------------------------------------------------------------------------------------------------------------
+   Config 1: Default CNN (64-128-256, Dense 512-256-128)     420,353    54.97%       59.26%    89.01%        86.73%         87.87%          86.17%       87.83%   0.9003
+   Config 2: Compact CNN (32-64-128, Dense 128-64)            56,321    49.74%       49.74%    83.17%        88.64%         85.90%          89.36%       85.71%   0.8732
+   Config 3: Regularized CNN (High Dropout & L2=0.005)       420,353    53.11%       56.08%    82.95%        79.21%         81.08%          77.66%       80.95%   0.8454
+   Config 4: Wide-Kernel CNN (k=5, Dense 256-128, lr=3e-4)   305,281    51.37%       52.91%    89.01%        86.73%         87.87%          86.17%       87.83%   0.8934
+
+2. Classical ML Benchmarks from Tasks D & E (same 189 test samples):
+------------------------------------------------------------------------------------------------
+   Task          Model                                         Acc@0.5  Prec(P)@Opt  Prec(NP)@Opt  MacroPrec@Opt  Rec(P)@Opt  Acc@Opt  ROC-AUC
+   ------------------------------------------------------------------------------------------------------------------------------------------
+   Task D (RF)   RF Config 2 (300 trees, depth=20) [Best RF]    84.66%    78.81%        98.59%         88.70%          98.94%       86.24%   0.8885
+   Task D (RF)   RF Config 3 (500 trees, depth=30)              83.60%    78.81%        98.59%         88.70%          98.94%       86.24%   0.8926
+   Task E (DT)   DT Config 2 (depth=10, leaf=10) [Best DT]      74.60%    79.61%        86.05%         82.83%          87.23%       82.54%   0.8450
+
+3. Summary & Key Findings:
+------------------------------------------------------------------------------------------------
+   - Default CNN (Config 1: Default CNN (64-128-256, Dense 512-256-128)): ROC-AUC = 0.9003, Prec(P)@0.5 = 54.97%, Prec(P)@Opt = 89.01% (420,353 trainable params).
+   - Best CNN by ROC-AUC (Config 1: Default CNN (64-128-256, Dense 512-256-128)): ROC-AUC = 0.9003 (+0.0000 vs default), Prec(P)@Opt = 89.01%, Rec(P)@Opt = 86.17%, Acc@Opt = 87.83%.
+   - Highest Planet Precision@Opt (Config 1: Default CNN (64-128-256, Dense 512-256-128)): Prec(P)@Opt = 89.01% (ROC-AUC = 0.9003).
+   - Cross-Model Comparison on identical test split: Best CNN vs Best RF delta ROC-AUC = +0.0118; Best CNN vs Best Decision Tree delta ROC-AUC = +0.0553.
+================================================================================================

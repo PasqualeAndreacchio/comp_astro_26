@@ -1,0 +1,76 @@
+======================================================================================
+CNN EVALUATION REPORT - Config 1: Default CNN (64-128-256, Dense 512-256-128)
+======================================================================================
+
+MODEL ARCHITECTURE:
+--------------------------------------------------------------------------------------
+  Input           : (batch, 1, 1000)
+  Conv Block 1    : Conv1d(1->64, k=3, pad=1, relu) -> BatchNorm1d(64) -> MaxPool1d(2) -> Dropout(0.30) [out: (64, 500)]
+  Conv Block 2    : Conv1d(64->128, k=3, pad=1, relu) -> BatchNorm1d(128) -> MaxPool1d(2) -> Dropout(0.30) [out: (128, 250)]
+  Conv Block 3    : Conv1d(128->256, k=3, pad=1, relu) -> BatchNorm1d(256) -> GlobalAvgPool1d -> Dropout(0.40) [out: (256, 1)]
+  Flatten         : (256,)
+  Dense Block 1   : Linear(256->512, relu, L2=0.001) -> Dropout(0.20)
+  Dense Block 2   : Linear(512->256, relu, L2=0.001) -> Dropout(0.20)
+  Dense Block 3   : Linear(256->128, relu, L2=0.001) -> Dropout(0.20)
+  Output Head     : Linear(128->1) + Sigmoid
+  Parameters      : 420,353 trainable / 420,353 total
+
+TRAINING HYPERPARAMETERS:
+--------------------------------------------------------------------------------------
+  framework         : PyTorch (2.9.1+cpu)
+  standardize       : True
+  loss_function     : FocalLoss(gamma=2.5, alpha=0.75)
+  optimizer         : Adam (lr=0.0005, dense_l2=0.001)
+  batch_size        : 32
+  max_epochs        : 120 (stopped at 75, best=55)
+  split sizes       : train=560 / val=140 / test=189
+  random_state      : 42
+  Best Val ROC-AUC  : 0.8857
+  Test ROC-AUC      : 0.9003
+
+METRICS AT DEFAULT THRESHOLD (p >= 0.5000):
+--------------------------------------------------------------------------------------
+  Precision (Planet)     : 0.5497 (54.97%)
+  Precision (Non-Planet) : 1.0000 (100.00%)
+  Precision (Macro Avg)  : 0.7749 (77.49%)
+  Recall (Planet)        : 1.0000 (100.00%)
+  Accuracy               : 59.26%
+
+CONFUSION MATRIX (Default Threshold 0.5000):
+                       Predicted Non-Planet    Predicted Planet
+  Actual Non-Planet :        18                    77                
+  Actual Planet     :        0                     94                
+
+CLASSIFICATION REPORT (Default Threshold 0.5000):
+              precision    recall  f1-score   support
+
+  Non-Planet     1.0000    0.1895    0.3186        95
+      Planet     0.5497    1.0000    0.7094        94
+
+    accuracy                         0.5926       189
+   macro avg     0.7749    0.5947    0.5140       189
+weighted avg     0.7760    0.5926    0.5130       189
+
+METRICS AT OPTIMAL THRESHOLD (Youden's J = 0.5462):
+--------------------------------------------------------------------------------------
+  Precision (Planet)     : 0.8901 (89.01%)
+  Precision (Non-Planet) : 0.8673 (86.73%)
+  Precision (Macro Avg)  : 0.8787 (87.87%)
+  Recall (Planet)        : 0.8617 (86.17%)
+  Accuracy               : 87.83%
+
+CONFUSION MATRIX (Optimal Youden's J Threshold):
+                       Predicted Non-Planet    Predicted Planet
+  Actual Non-Planet :        85                    10                
+  Actual Planet     :        13                    81                
+
+CLASSIFICATION REPORT (Optimal Youden's J Threshold):
+              precision    recall  f1-score   support
+
+  Non-Planet     0.8673    0.8947    0.8808        95
+      Planet     0.8901    0.8617    0.8757        94
+
+    accuracy                         0.8783       189
+   macro avg     0.8787    0.8782    0.8783       189
+weighted avg     0.8787    0.8783    0.8783       189
+======================================================================================

@@ -1,0 +1,41 @@
+# ==============================================================================
+# Configuration 2: Compact CNN (Reduced Filters & Fewer Dense Layers)
+# ==============================================================================
+
+data:
+  csv_path: "tess_data.csv"
+  n_bins: 1000
+  samples_per_class: 350
+  standardize: true
+  random_state: 42
+
+model:
+  name: "Config 2: Compact CNN (32-64-128, Dense 128-64)"
+  conv_channels: [32, 64, 128]
+  kernel_sizes: [3, 3, 3]
+  conv_dropouts: [0.3, 0.3, 0.4]
+  pool_size: 2
+  use_batchnorm: true
+  use_global_avg_pool: true
+  dense_dims: [128, 64]
+  dense_dropouts: [0.2, 0.2]
+  activation: "relu"
+  l2_reg: 0.001
+
+training:
+  loss_type: "focal"
+  focal_gamma: 2.5
+  focal_alpha: 0.75
+  learning_rate: 0.0005
+  batch_size: 32
+  epochs: 120
+  min_epochs: 15
+  val_split: 0.20
+  patience: 20
+  lr_patience: 8
+  lr_factor: 0.5
+  min_lr: 1.0e-7
+  random_state: 42
+
+output:
+  report_path: "cnn/results/report_config2_compact_cnn.txt"
