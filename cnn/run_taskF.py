@@ -5,16 +5,13 @@ from __future__ import annotations
 import argparse
 from pathlib import Path
 import sys
+from typing import Any, Dict, List, Tuple
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 
-from cnn.cnn_classifier import (  # noqa: E402
-    CNNExperimentConfig,
-    CNNTransitDetector,
-    EvaluationMetrics,
-)
+from cnn.cnn_classifier import CNNDetection  # noqa: E402
 
 # Reference benchmarks on the identical 189-sample test split (Tasks D & E)
 PRIOR_TASK_BENCHMARKS = [
@@ -57,31 +54,26 @@ PRIOR_TASK_BENCHMARKS = [
 def run_all_configs(
     params_dir: Path,
     consolidated_report: Path,
-) -> list[tuple[CNNExperimentConfig, EvaluationMetrics]]:
-    """Run every YAML configuration in ``params_dir`` on the same data split."""
+) -> List[Tuple[CNNDetection, Dict[str, Any]]]:
+    """Run every YAML configuration in ``params_dir`` via ``CNNDetection.run()``."""
     yaml_files = sorted(params_dir.glob("*.yaml"))
     if not yaml_files:
         raise FileNotFoundError(f"No YAML configurations found in {params_dir}")
 
-    first_cfg = CNNExperimentConfig.from_yaml(yaml_files[0])
-    base_detector = CNNTransitDetector(first_cfg)
-    X_train, X_test, y_train, y_test = base_detector.load_dataset()
-
-    results: list[tuple[CNNExperimentConfig, EvaluationMetrics]] = []
+    results: List[Tuple[CNNDetection, Dict[str, Any]]] = []
     for yaml_path in yaml_files:
-        cfg = CNNExperimentConfig.from_yaml(yaml_path)
-        detector = CNNTransitDetector(cfg)
-        metrics = detector.fit_and_evaluate(X_train, y_train, X_test, y_test)
-        saved_individual = detector.save_report()
+        detector = CNNDetection(params=yaml_path)
+        metrics = detector.run(display=False, save=True)
         print(
-            f"Completed {cfg.model.name} | "
-            f"AUC={metrics.roc_auc:.4f} | "
-            f"Prec(P)@0.5={metrics.default_threshold.precision_planet * 100:.2f}% | "
-            f"Prec(P)@Opt={metrics.optimal_threshold.precision_planet * 100:.2f}% | "
-            f"Saved: {saved_individual}"
+            f"Completed {metrics['config_name']} | "
+            f"AUC={metrics['auc_roc']:.4f} | "
+            f"Prec(P)@0.5={metrics['precision_planet_default'] * 100:.2f}% | "
+            f"Prec(P)@Opt={metrics['precision_planet'] * 100:.2f}% | "
+            f"Saved: {detector.output_config.get('report_path')}"
         )
-        results.append((cfg, metrics))
+        results.append((detector, metrics))
 
+    consolidated_report.parent.mkdir(parents=True, exist_ok=True)
     report_text = build_consolidated_report(results)
     consolidated_report.write_text(report_text, encoding="utf-8")
     print(f"Saved consolidated Task F report: {consolidated_report}")
@@ -89,14 +81,14 @@ def run_all_configs(
 
 
 def build_consolidated_report(
-    results: list[tuple[CNNExperimentConfig, EvaluationMetrics]],
+    results: List[Tuple[CNNDetection, Dict[str, Any]]],
 ) -> str:
     """Build the consolidated Task F report across all four CNN configurations."""
-    best_cfg, best_res = max(results, key=lambda pair: pair[1].roc_auc)
-    best_prec_cfg, best_prec_res = max(
-        results, key=lambda pair: pair[1].optimal_threshold.precision_planet
+    best_det, best_res = max(results, key=lambda pair: pair[1]["auc_roc"])
+    best_prec_det, best_prec_res = max(
+        results, key=lambda pair: pair[1]["precision_planet"]
     )
-    default_cfg, default_res = results[0]
+    default_det, default_res = results[0]
 
     lines = [
         "=" * 96,
@@ -109,44 +101,45 @@ def build_consolidated_report(
         "  Train/Test Split   : Stratified 80/20 (random_state=42) -> 755 train / 189 test",
         "  Test Distribution  : 95 Non-Planet (class 0), 94 Planet (class 1)",
         "  Train Balancing    : daneel.detection.data_process.load_data",
-        "                       (samples_per_class=350, random_state=42 -> 700 train samples)",
+        "                       (balanced=True, samples_per_class=350, random_state=42 -> 700 train)",
         "  Internal Val Split : Stratified 80/20 on balanced train (560 train / 140 val)",
         "                       used for EarlyStopping & ReduceLROnPlateau (X_test kept unseen)",
-        "  Standardization    : Enabled (use_scaler=True, StandardScaler fit on training set)",
+        "  Standardization    : Enabled (standardize=True, StandardScaler fit inside CNNDetection.fit)",
+        "  Architecture       : CNNDetection(BaseTransitDetector)",
         "  Reference Notebook : transit_analysis_deep_learning.ipynb (implemented in PyTorch)",
         "",
     ]
 
-    for cfg, res in results:
-        t = cfg.training
-        m = cfg.model
-        d_m = res.default_threshold
-        o_m = res.optimal_threshold
-        tn_d, fp_d, fn_d, tp_d = d_m.confusion_matrix.ravel()
-        tn_o, fp_o, fn_o, tp_o = o_m.confusion_matrix.ravel()
+    for detector, res in results:
+        m = detector.model_config
+        cm_d = res["confusion_matrix_default"]
+        cm_o = res["confusion_matrix"]
+        tn_d, fp_d, fn_d, tp_d = cm_d.ravel()
+        tn_o, fp_o, fn_o, tp_o = cm_o.ravel()
+        loss_type = str(m.get("loss_type", "focal")).lower()
         loss_desc = (
-            f"FocalLoss(gamma={t.focal_gamma}, alpha={t.focal_alpha})"
-            if t.loss_type.lower() == "focal"
+            f"FocalLoss(gamma={m.get('focal_gamma')}, alpha={m.get('focal_alpha')})"
+            if loss_type == "focal"
             else "BCEWithLogitsLoss"
         )
 
         lines.extend(
             [
                 "=" * 96,
-                f"{res.config_name}",
+                f"{res['config_name']}",
                 "=" * 96,
                 "NEURAL NETWORK ARCHITECTURE:",
                 "-" * 96,
-                *res.architecture_lines,
+                *res["architecture_lines"],
                 "",
                 "TRAINING HYPERPARAMETERS:",
                 "-" * 96,
                 f"  loss_function     : {loss_desc}",
-                f"  optimizer         : Adam (lr={t.learning_rate}, dense_l2={m.l2_reg})",
-                f"  batch_size        : {t.batch_size}",
-                f"  epochs            : max={t.epochs}, stopped={res.epochs_run}, best_val_epoch={res.best_epoch}",
-                f"  best_val_roc_auc  : {res.val_auc_best:.4f}",
-                f"  test_roc_auc      : {res.roc_auc:.4f}",
+                f"  optimizer         : Adam (lr={m.get('learning_rate')}, dense_l2={m.get('l2_reg')})",
+                f"  batch_size        : {m.get('batch_size')}",
+                f"  epochs            : max={m.get('epochs')}, stopped={res['epochs_run']}, best_val_epoch={res['best_epoch']}",
+                f"  best_val_roc_auc  : {res['val_auc_best']:.4f}",
+                f"  test_roc_auc      : {res['auc_roc']:.4f}",
                 "",
                 "CONFUSION MATRIX & PRECISION (Default Threshold p >= 0.5000):",
                 "-" * 96,
@@ -154,25 +147,25 @@ def build_consolidated_report(
                 f"  Actual Non-Planet :        {tn_d:<18d}    {fp_d:<18d}",
                 f"  Actual Planet     :        {fn_d:<18d}    {tp_d:<18d}",
                 "",
-                f"  Precision (Planet)     : {d_m.precision_planet:.4f} ({d_m.precision_planet * 100:.2f}%)",
-                f"  Precision (Non-Planet) : {d_m.precision_non_planet:.4f} ({d_m.precision_non_planet * 100:.2f}%)",
-                f"  Precision (Macro Avg)  : {d_m.precision_macro:.4f} ({d_m.precision_macro * 100:.2f}%)",
-                f"  Recall (Planet)        : {d_m.recall_planet:.4f} ({d_m.recall_planet * 100:.2f}%)",
-                f"  F1-Score (Planet)      : {d_m.f1_planet:.4f}",
-                f"  Accuracy               : {d_m.accuracy * 100:.2f}%",
+                f"  Precision (Planet)     : {res['precision_planet_default']:.4f} ({res['precision_planet_default'] * 100:.2f}%)",
+                f"  Precision (Non-Planet) : {res['precision_non_planet_default']:.4f} ({res['precision_non_planet_default'] * 100:.2f}%)",
+                f"  Precision (Macro Avg)  : {res['precision_macro_default']:.4f} ({res['precision_macro_default'] * 100:.2f}%)",
+                f"  Recall (Planet)        : {res['recall_planet_default']:.4f} ({res['recall_planet_default'] * 100:.2f}%)",
+                f"  F1-Score (Planet)      : {res['f1_planet_default']:.4f}",
+                f"  Accuracy               : {res['accuracy_default'] * 100:.2f}%",
                 "",
-                f"CONFUSION MATRIX & PRECISION (Optimal Youden's J Threshold = {o_m.threshold:.4f}):",
+                f"CONFUSION MATRIX & PRECISION (Optimal Youden's J Threshold = {res['optimal_threshold']:.4f}):",
                 "-" * 96,
                 "                       Predicted Non-Planet    Predicted Planet",
                 f"  Actual Non-Planet :        {tn_o:<18d}    {fp_o:<18d}",
                 f"  Actual Planet     :        {fn_o:<18d}    {tp_o:<18d}",
                 "",
-                f"  Precision (Planet)     : {o_m.precision_planet:.4f} ({o_m.precision_planet * 100:.2f}%)",
-                f"  Precision (Non-Planet) : {o_m.precision_non_planet:.4f} ({o_m.precision_non_planet * 100:.2f}%)",
-                f"  Precision (Macro Avg)  : {o_m.precision_macro:.4f} ({o_m.precision_macro * 100:.2f}%)",
-                f"  Recall (Planet)        : {o_m.recall_planet:.4f} ({o_m.recall_planet * 100:.2f}%)",
-                f"  F1-Score (Planet)      : {o_m.f1_planet:.4f}",
-                f"  Accuracy               : {o_m.accuracy * 100:.2f}%",
+                f"  Precision (Planet)     : {res['precision_planet']:.4f} ({res['precision_planet'] * 100:.2f}%)",
+                f"  Precision (Non-Planet) : {res['precision_non_planet']:.4f} ({res['precision_non_planet'] * 100:.2f}%)",
+                f"  Precision (Macro Avg)  : {res['precision_macro']:.4f} ({res['precision_macro'] * 100:.2f}%)",
+                f"  Recall (Planet)        : {res['recall_planet']:.4f} ({res['recall_planet'] * 100:.2f}%)",
+                f"  F1-Score (Planet)      : {res['f1_planet']:.4f}",
+                f"  Accuracy               : {res['accuracy_optimal'] * 100:.2f}%",
                 "",
             ]
         )
@@ -191,19 +184,17 @@ def build_consolidated_report(
     )
 
     for _, res in results:
-        d_m = res.default_threshold
-        o_m = res.optimal_threshold
         lines.append(
-            f"   {res.config_name:<57s}"
-            f" {res.trainable_params:>7,d}  "
-            f" {d_m.precision_planet * 100:6.2f}%     "
-            f" {d_m.accuracy * 100:6.2f}%  "
-            f" {o_m.precision_planet * 100:6.2f}%      "
-            f" {o_m.precision_non_planet * 100:6.2f}%       "
-            f" {o_m.precision_macro * 100:6.2f}%        "
-            f" {o_m.recall_planet * 100:6.2f}%     "
-            f" {o_m.accuracy * 100:6.2f}%  "
-            f" {res.roc_auc:6.4f}"
+            f"   {res['config_name']:<57s}"
+            f" {res['trainable_params']:>7,d}  "
+            f" {res['precision_planet_default'] * 100:6.2f}%     "
+            f" {res['accuracy_default'] * 100:6.2f}%  "
+            f" {res['precision_planet'] * 100:6.2f}%      "
+            f" {res['precision_non_planet'] * 100:6.2f}%       "
+            f" {res['precision_macro'] * 100:6.2f}%        "
+            f" {res['recall_planet'] * 100:6.2f}%     "
+            f" {res['accuracy_optimal'] * 100:6.2f}%  "
+            f" {res['auc_roc']:6.4f}"
         )
 
     lines.extend(
@@ -230,28 +221,28 @@ def build_consolidated_report(
 
     best_rf = PRIOR_TASK_BENCHMARKS[0]
     best_dt = PRIOR_TASK_BENCHMARKS[2]
-    auc_vs_default = best_res.roc_auc - default_res.roc_auc
-    auc_vs_rf = best_res.roc_auc - best_rf["auc"]
-    auc_vs_dt = best_res.roc_auc - best_dt["auc"]
+    auc_vs_default = best_res["auc_roc"] - default_res["auc_roc"]
+    auc_vs_rf = best_res["auc_roc"] - best_rf["auc"]
+    auc_vs_dt = best_res["auc_roc"] - best_dt["auc"]
 
     lines.extend(
         [
             "",
             "3. Summary & Key Findings:",
             "-" * 96,
-            f"   - Default CNN ({default_cfg.model.name}): "
-            f"ROC-AUC = {default_res.roc_auc:.4f}, "
-            f"Prec(P)@0.5 = {default_res.default_threshold.precision_planet * 100:.2f}%, "
-            f"Prec(P)@Opt = {default_res.optimal_threshold.precision_planet * 100:.2f}% "
-            f"({default_res.trainable_params:,} trainable params).",
-            f"   - Best CNN by ROC-AUC ({best_cfg.model.name}): "
-            f"ROC-AUC = {best_res.roc_auc:.4f} ({auc_vs_default:+.4f} vs default), "
-            f"Prec(P)@Opt = {best_res.optimal_threshold.precision_planet * 100:.2f}%, "
-            f"Rec(P)@Opt = {best_res.optimal_threshold.recall_planet * 100:.2f}%, "
-            f"Acc@Opt = {best_res.optimal_threshold.accuracy * 100:.2f}%.",
-            f"   - Highest Planet Precision@Opt ({best_prec_cfg.model.name}): "
-            f"Prec(P)@Opt = {best_prec_res.optimal_threshold.precision_planet * 100:.2f}% "
-            f"(ROC-AUC = {best_prec_res.roc_auc:.4f}).",
+            f"   - Default CNN ({default_det.model_config.get('name')}): "
+            f"ROC-AUC = {default_res['auc_roc']:.4f}, "
+            f"Prec(P)@0.5 = {default_res['precision_planet_default'] * 100:.2f}%, "
+            f"Prec(P)@Opt = {default_res['precision_planet'] * 100:.2f}% "
+            f"({default_res['trainable_params']:,} trainable params).",
+            f"   - Best CNN by ROC-AUC ({best_det.model_config.get('name')}): "
+            f"ROC-AUC = {best_res['auc_roc']:.4f} ({auc_vs_default:+.4f} vs default), "
+            f"Prec(P)@Opt = {best_res['precision_planet'] * 100:.2f}%, "
+            f"Rec(P)@Opt = {best_res['recall_planet'] * 100:.2f}%, "
+            f"Acc@Opt = {best_res['accuracy_optimal'] * 100:.2f}%.",
+            f"   - Highest Planet Precision@Opt ({best_prec_det.model_config.get('name')}): "
+            f"Prec(P)@Opt = {best_prec_res['precision_planet'] * 100:.2f}% "
+            f"(ROC-AUC = {best_prec_res['auc_roc']:.4f}).",
             f"   - Cross-Model Comparison on identical test split: Best CNN vs Best RF delta ROC-AUC = {auc_vs_rf:+.4f}; "
             f"Best CNN vs Best Decision Tree delta ROC-AUC = {auc_vs_dt:+.4f}.",
             "=" * 96,
@@ -277,7 +268,7 @@ def parse_args() -> argparse.Namespace:
         "--output",
         dest="output_report",
         type=str,
-        default="report_cnn_assignment2_taskF.txt",
+        default="assignment2/report_cnn_assignment2_taskF.txt",
         help="Path for consolidated Task F report when running all configs.",
     )
     return parser.parse_args()
@@ -286,15 +277,14 @@ def parse_args() -> argparse.Namespace:
 def main() -> int:
     args = parse_args()
     if args.config_path:
-        cfg = CNNExperimentConfig.from_yaml(args.config_path)
-        detector = CNNTransitDetector(cfg)
-        metrics = detector.run()
+        detector = CNNDetection(params=args.config_path)
+        metrics = detector.run(display=True, save=True)
         print(
-            f"Completed {cfg.model.name} | "
-            f"AUC={metrics.roc_auc:.4f} | "
-            f"Acc@0.5={metrics.default_threshold.accuracy * 100:.2f}% | "
-            f"Prec(P)@0.5={metrics.default_threshold.precision_planet * 100:.2f}% | "
-            f"Prec(P)@Opt={metrics.optimal_threshold.precision_planet * 100:.2f}%"
+            f"Completed {metrics['config_name']} | "
+            f"AUC={metrics['auc_roc']:.4f} | "
+            f"Acc@0.5={metrics['accuracy_default'] * 100:.2f}% | "
+            f"Prec(P)@0.5={metrics['precision_planet_default'] * 100:.2f}% | "
+            f"Prec(P)@Opt={metrics['precision_planet'] * 100:.2f}%"
         )
         return 0
 

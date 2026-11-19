@@ -8,10 +8,11 @@ EXPERIMENTAL SETUP & SPLIT CONSISTENCY WITH TASKS D & E:
   Train/Test Split   : Stratified 80/20 (random_state=42) -> 755 train / 189 test
   Test Distribution  : 95 Non-Planet (class 0), 94 Planet (class 1)
   Train Balancing    : daneel.detection.data_process.load_data
-                       (samples_per_class=350, random_state=42 -> 700 train samples)
+                       (balanced=True, samples_per_class=350, random_state=42 -> 700 train)
   Internal Val Split : Stratified 80/20 on balanced train (560 train / 140 val)
                        used for EarlyStopping & ReduceLROnPlateau (X_test kept unseen)
-  Standardization    : Enabled (use_scaler=True, StandardScaler fit on training set)
+  Standardization    : Enabled (standardize=True, StandardScaler fit inside CNNDetection.fit)
+  Architecture       : CNNDetection(BaseTransitDetector)
   Reference Notebook : transit_analysis_deep_learning.ipynb (implemented in PyTorch)
 
 ================================================================================================

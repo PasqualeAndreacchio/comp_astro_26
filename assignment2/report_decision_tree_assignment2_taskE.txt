@@ -8,9 +8,10 @@ EXPERIMENTAL SETUP & SPLIT CONSISTENCY WITH TASK D:
   Train/Test Split : Stratified 80/20 (random_state=42) -> 755 train / 189 test
   Test Distribution: 95 Non-Planet (class 0), 94 Planet (class 1)
   Train Balancing  : daneel.detection.data_process.load_data
-                     (samples_per_class=350, random_state=42 -> 700 train samples)
-  Standardization  : Disabled (use_scaler=False), as tree splits are invariant
+                     (balanced=True, samples_per_class=350, random_state=42 -> 700 train)
+  Standardization  : Disabled (standardize=False), as tree splits are invariant
                      to monotonic feature scaling (consistent with Task D)
+  Architecture     : DecisionTreeDetection(BaseTransitDetector)
 
 ============================================================================================
 Config 1: Pruned Shallow Tree (depth=5, leaf=5)

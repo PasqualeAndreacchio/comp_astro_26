@@ -5,16 +5,13 @@ from __future__ import annotations
 import argparse
 from pathlib import Path
 import sys
+from typing import Any, Dict, List, Tuple
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 
-from decision_tree.decision_tree_classifier import (  # noqa: E402
-    DecisionTreeExperimentConfig,
-    DecisionTreeTransitDetector,
-    EvaluationMetrics,
-)
+from decision_tree.decision_tree_classifier import DecisionTreeDetection  # noqa: E402
 
 # Reference Random Forest results from Task D (Pasquale, commit 5e3563a)
 TASK_D_RF_BENCHMARKS = [
@@ -64,25 +61,26 @@ TASK_D_RF_BENCHMARKS = [
 def run_all_configs(
     params_dir: Path,
     consolidated_report: Path,
-) -> list[tuple[DecisionTreeExperimentConfig, EvaluationMetrics]]:
-    """Run every YAML configuration in ``params_dir`` on the same data split."""
+) -> List[Tuple[DecisionTreeDetection, Dict[str, Any]]]:
+    """Run every YAML configuration in ``params_dir`` via ``DecisionTreeDetection.run()``."""
     yaml_files = sorted(params_dir.glob("*.yaml"))
     if not yaml_files:
         raise FileNotFoundError(f"No YAML configurations found in {params_dir}")
 
-    first_cfg = DecisionTreeExperimentConfig.from_yaml(yaml_files[0])
-    base_detector = DecisionTreeTransitDetector(first_cfg)
-    X_train, X_test, y_train, y_test = base_detector.load_dataset()
-
-    results: list[tuple[DecisionTreeExperimentConfig, EvaluationMetrics]] = []
+    results: List[Tuple[DecisionTreeDetection, Dict[str, Any]]] = []
     for yaml_path in yaml_files:
-        cfg = DecisionTreeExperimentConfig.from_yaml(yaml_path)
-        detector = DecisionTreeTransitDetector(cfg)
-        metrics = detector.fit_and_evaluate(X_train, y_train, X_test, y_test)
-        saved_individual = detector.save_report()
-        print(f"Saved individual report: {saved_individual}")
-        results.append((cfg, metrics))
+        detector = DecisionTreeDetection(params=yaml_path)
+        metrics = detector.run(display=False, save=True)
+        print(
+            f"Completed {metrics['config_name']} | "
+            f"AUC={metrics['auc_roc']:.4f} | "
+            f"Acc@0.5={metrics['accuracy_default'] * 100:.2f}% | "
+            f"Acc@Opt={metrics['accuracy_optimal'] * 100:.2f}% | "
+            f"Saved: {detector.output_config.get('report_path')}"
+        )
+        results.append((detector, metrics))
 
+    consolidated_report.parent.mkdir(parents=True, exist_ok=True)
     report_text = build_consolidated_report(results)
     consolidated_report.write_text(report_text, encoding="utf-8")
     print(f"Saved consolidated Task E report: {consolidated_report}")
@@ -90,13 +88,18 @@ def run_all_configs(
 
 
 def build_consolidated_report(
-    results: list[tuple[DecisionTreeExperimentConfig, EvaluationMetrics]],
+    results: List[Tuple[DecisionTreeDetection, Dict[str, Any]]],
 ) -> str:
     """Build the consolidated Task E report comparing Decision Tree vs Task D RF."""
-    best_cfg, best_res = max(results, key=lambda pair: pair[1].roc_auc)
+    best_det, best_res = max(results, key=lambda pair: pair[1]["auc_roc"])
     rf_best = TASK_D_RF_BENCHMARKS[1]  # RF Config 2 (300 trees, depth=20)
     rf_matched_pair = next(
-        (pair for pair in results if pair[0].model.max_depth == 20 and pair[0].model.min_samples_leaf == 1),
+        (
+            pair
+            for pair in results
+            if pair[0].model_config.get("max_depth") == 20
+            and pair[0].model_config.get("min_samples_leaf") == 1
+        ),
         results[0],
     )
 
@@ -111,32 +114,33 @@ def build_consolidated_report(
         "  Train/Test Split : Stratified 80/20 (random_state=42) -> 755 train / 189 test",
         "  Test Distribution: 95 Non-Planet (class 0), 94 Planet (class 1)",
         "  Train Balancing  : daneel.detection.data_process.load_data",
-        "                     (samples_per_class=350, random_state=42 -> 700 train samples)",
-        "  Standardization  : Disabled (use_scaler=False), as tree splits are invariant",
+        "                     (balanced=True, samples_per_class=350, random_state=42 -> 700 train)",
+        "  Standardization  : Disabled (standardize=False), as tree splits are invariant",
         "                     to monotonic feature scaling (consistent with Task D)",
+        "  Architecture     : DecisionTreeDetection(BaseTransitDetector)",
         "",
     ]
 
-    for cfg, res in results:
-        m = cfg.model
-        d_m = res.default_threshold
-        o_m = res.optimal_threshold
-        tn_d, fp_d, fn_d, tp_d = d_m.confusion_matrix.ravel()
-        tn_o, fp_o, fn_o, tp_o = o_m.confusion_matrix.ravel()
+    for detector, res in results:
+        m = detector.model_config
+        cm_d = res["confusion_matrix_default"]
+        cm_o = res["confusion_matrix"]
+        tn_d, fp_d, fn_d, tp_d = cm_d.ravel()
+        tn_o, fp_o, fn_o, tp_o = cm_o.ravel()
         lines.extend(
             [
                 "=" * 92,
-                f"{res.config_name}",
+                f"{res['config_name']}",
                 "=" * 92,
                 "MODEL HYPERPARAMETERS & TREE STRUCTURE:",
                 "-" * 92,
-                f"  criterion         : {m.criterion}",
-                f"  max_depth         : {m.max_depth} (fitted depth: {res.tree_depth})",
-                f"  min_samples_leaf  : {m.min_samples_leaf}",
-                f"  min_samples_split : {m.min_samples_split}",
-                f"  n_leaves          : {res.n_leaves}",
-                f"  random_state      : {m.random_state}",
-                f"  ROC-AUC Score     : {res.roc_auc:.4f}",
+                f"  criterion         : {m.get('criterion')}",
+                f"  max_depth         : {m.get('max_depth')} (fitted depth: {res['tree_depth']})",
+                f"  min_samples_leaf  : {m.get('min_samples_leaf')}",
+                f"  min_samples_split : {m.get('min_samples_split')}",
+                f"  n_leaves          : {res['n_leaves']}",
+                f"  random_state      : {m.get('random_state')}",
+                f"  ROC-AUC Score     : {res['auc_roc']:.4f}",
                 "",
                 "CONFUSION MATRIX & PRECISION (Default Threshold p >= 0.5000):",
                 "-" * 92,
@@ -144,23 +148,23 @@ def build_consolidated_report(
                 f"  Actual Non-Planet :        {tn_d:<18d}    {fp_d:<18d}",
                 f"  Actual Planet     :        {fn_d:<18d}    {tp_d:<18d}",
                 "",
-                f"  Precision (Planet)     : {d_m.precision_planet:.4f} ({d_m.precision_planet * 100:.2f}%)",
-                f"  Precision (Non-Planet) : {d_m.precision_non_planet:.4f} ({d_m.precision_non_planet * 100:.2f}%)",
-                f"  Precision (Macro Avg)  : {d_m.precision_macro:.4f} ({d_m.precision_macro * 100:.2f}%)",
-                f"  Recall (Planet)        : {d_m.recall_planet:.4f} ({d_m.recall_planet * 100:.2f}%)",
-                f"  Accuracy               : {d_m.accuracy * 100:.2f}%",
+                f"  Precision (Planet)     : {res['precision_planet_default']:.4f} ({res['precision_planet_default'] * 100:.2f}%)",
+                f"  Precision (Non-Planet) : {res['precision_non_planet_default']:.4f} ({res['precision_non_planet_default'] * 100:.2f}%)",
+                f"  Precision (Macro Avg)  : {res['precision_macro_default']:.4f} ({res['precision_macro_default'] * 100:.2f}%)",
+                f"  Recall (Planet)        : {res['recall_planet_default']:.4f} ({res['recall_planet_default'] * 100:.2f}%)",
+                f"  Accuracy               : {res['accuracy_default'] * 100:.2f}%",
                 "",
-                f"CONFUSION MATRIX & PRECISION (Optimal Youden's J Threshold = {o_m.threshold:.4f}):",
+                f"CONFUSION MATRIX & PRECISION (Optimal Youden's J Threshold = {res['optimal_threshold']:.4f}):",
                 "-" * 92,
                 "                       Predicted Non-Planet    Predicted Planet",
                 f"  Actual Non-Planet :        {tn_o:<18d}    {fp_o:<18d}",
                 f"  Actual Planet     :        {fn_o:<18d}    {tp_o:<18d}",
                 "",
-                f"  Precision (Planet)     : {o_m.precision_planet:.4f} ({o_m.precision_planet * 100:.2f}%)",
-                f"  Precision (Non-Planet) : {o_m.precision_non_planet:.4f} ({o_m.precision_non_planet * 100:.2f}%)",
-                f"  Precision (Macro Avg)  : {o_m.precision_macro:.4f} ({o_m.precision_macro * 100:.2f}%)",
-                f"  Recall (Planet)        : {o_m.recall_planet:.4f} ({o_m.recall_planet * 100:.2f}%)",
-                f"  Accuracy               : {o_m.accuracy * 100:.2f}%",
+                f"  Precision (Planet)     : {res['precision_planet']:.4f} ({res['precision_planet'] * 100:.2f}%)",
+                f"  Precision (Non-Planet) : {res['precision_non_planet']:.4f} ({res['precision_non_planet'] * 100:.2f}%)",
+                f"  Precision (Macro Avg)  : {res['precision_macro']:.4f} ({res['precision_macro'] * 100:.2f}%)",
+                f"  Recall (Planet)        : {res['recall_planet']:.4f} ({res['recall_planet'] * 100:.2f}%)",
+                f"  Accuracy               : {res['accuracy_optimal'] * 100:.2f}%",
                 "",
             ]
         )
@@ -179,18 +183,16 @@ def build_consolidated_report(
     )
 
     for _, res in results:
-        d_m = res.default_threshold
-        o_m = res.optimal_threshold
         lines.append(
-            f"   {res.config_name:<54s}"
-            f" {d_m.precision_planet * 100:6.2f}%     "
-            f" {d_m.accuracy * 100:6.2f}%  "
-            f" {o_m.precision_planet * 100:6.2f}%      "
-            f" {o_m.precision_non_planet * 100:6.2f}%       "
-            f" {o_m.precision_macro * 100:6.2f}%        "
-            f" {o_m.recall_planet * 100:6.2f}%     "
-            f" {o_m.accuracy * 100:6.2f}%  "
-            f" {res.roc_auc:6.4f}"
+            f"   {res['config_name']:<54s}"
+            f" {res['precision_planet_default'] * 100:6.2f}%     "
+            f" {res['accuracy_default'] * 100:6.2f}%  "
+            f" {res['precision_planet'] * 100:6.2f}%      "
+            f" {res['precision_non_planet'] * 100:6.2f}%       "
+            f" {res['precision_macro'] * 100:6.2f}%        "
+            f" {res['recall_planet'] * 100:6.2f}%     "
+            f" {res['accuracy_optimal'] * 100:6.2f}%  "
+            f" {res['auc_roc']:6.4f}"
         )
 
     lines.extend(
@@ -215,25 +217,25 @@ def build_consolidated_report(
         )
 
     matched_res = rf_matched_pair[1]
-    auc_gain = rf_best["auc"] - matched_res.roc_auc
-    acc05_gain = (rf_best["acc_05"] - matched_res.default_threshold.accuracy) * 100
-    best_dt_auc_gap = best_res.roc_auc - rf_best["auc"]
-    best_dt_acc05_gap = (best_res.default_threshold.accuracy - rf_best["acc_05"]) * 100
+    auc_gain = rf_best["auc"] - matched_res["auc_roc"]
+    acc05_gain = (rf_best["acc_05"] - matched_res["accuracy_default"]) * 100
+    best_dt_auc_gap = best_res["auc_roc"] - rf_best["auc"]
+    best_dt_acc05_gap = (best_res["accuracy_default"] - rf_best["acc_05"]) * 100
 
     lines.extend(
         [
             "",
             "3. Summary Comparison:",
             "-" * 92,
-            f"   - Best Decision Tree by ROC-AUC: {best_cfg.model.name} "
-            f"(ROC-AUC = {best_res.roc_auc:.4f}, "
-            f"Prec(P)@Opt = {best_res.optimal_threshold.precision_planet * 100:.2f}%).",
+            f"   - Best Decision Tree by ROC-AUC: {best_det.model_config.get('name')} "
+            f"(ROC-AUC = {best_res['auc_roc']:.4f}, "
+            f"Prec(P)@Opt = {best_res['precision_planet'] * 100:.2f}%).",
             f"   - Best Task D Random Forest: {rf_best['name']} "
             f"(ROC-AUC = {rf_best['auc']:.4f}, "
             f"Prec(P)@Opt = {rf_best['prec_p'] * 100:.2f}%).",
             f"   - Direct Single-Tree vs Ensemble Comparison (both depth=20, min_samples_leaf=1):",
-            f"     * 1 Decision Tree  -> Acc@0.5 = {matched_res.default_threshold.accuracy * 100:.2f}%, "
-            f"ROC-AUC = {matched_res.roc_auc:.4f}",
+            f"     * 1 Decision Tree  -> Acc@0.5 = {matched_res['accuracy_default'] * 100:.2f}%, "
+            f"ROC-AUC = {matched_res['auc_roc']:.4f}",
             f"     * 300-Tree RF      -> Acc@0.5 = {rf_best['acc_05'] * 100:.2f}%, "
             f"ROC-AUC = {rf_best['auc']:.4f}",
             f"     * Ensemble Gain    -> +{acc05_gain:.2f} pp Accuracy@0.5, +{auc_gain:.4f} ROC-AUC.",
@@ -262,7 +264,7 @@ def parse_args() -> argparse.Namespace:
         "--output",
         dest="output_report",
         type=str,
-        default="report_decision_tree_assignment2_taskE.txt",
+        default="assignment2/report_decision_tree_assignment2_taskE.txt",
         help="Path for consolidated Task E report when running all configs.",
     )
     return parser.parse_args()
@@ -271,14 +273,13 @@ def parse_args() -> argparse.Namespace:
 def main() -> int:
     args = parse_args()
     if args.config_path:
-        cfg = DecisionTreeExperimentConfig.from_yaml(args.config_path)
-        detector = DecisionTreeTransitDetector(cfg)
-        metrics = detector.run()
+        detector = DecisionTreeDetection(params=args.config_path)
+        metrics = detector.run(display=True, save=True)
         print(
-            f"Completed {cfg.model.name} | "
-            f"AUC={metrics.roc_auc:.4f} | "
-            f"Acc@0.5={metrics.default_threshold.accuracy * 100:.2f}% | "
-            f"Prec(P)@0.5={metrics.default_threshold.precision_planet * 100:.2f}%"
+            f"Completed {metrics['config_name']} | "
+            f"AUC={metrics['auc_roc']:.4f} | "
+            f"Acc@0.5={metrics['accuracy_default'] * 100:.2f}% | "
+            f"Prec(P)@Opt={metrics['precision_planet'] * 100:.2f}%"
         )
         return 0
 

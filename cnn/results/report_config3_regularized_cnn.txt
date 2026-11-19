@@ -1,9 +1,56 @@
-======================================================================================
-CNN EVALUATION REPORT - Config 3: Regularized CNN (High Dropout & L2=0.005)
-======================================================================================
+================================================================================
+1D CNN EVALUATION REPORT
+================================================================================
+
+MODEL HYPERPARAMETERS:
+--------------------------------------------------------------------------------
+  name                  : Config 3: Regularized CNN (High Dropout & L2=0.005)
+  standardize           : True
+  conv_channels         : [64, 128, 256]
+  kernel_sizes          : [3, 3, 3]
+  conv_dropouts         : [0.4, 0.4, 0.5]
+  pool_size             : 2
+  use_batchnorm         : True
+  use_global_avg_pool   : True
+  dense_dims            : [512, 256, 128]
+  dense_dropouts        : [0.4, 0.4, 0.3]
+  activation            : relu
+  l2_reg                : 0.005
+  loss_type             : focal
+  focal_gamma           : 2.5
+  focal_alpha           : 0.75
+  learning_rate         : 0.0005
+  batch_size            : 32
+  epochs                : 120
+  min_epochs            : 15
+  val_split             : 0.2
+  patience              : 20
+  lr_patience           : 8
+  lr_factor             : 0.5
+  min_lr                : 1e-07
+  random_state          : 42
+  device                : None
+
+EVALUATION METRICS & PRECISION:
+--------------------------------------------------------------------------------
+  Precision (Planet / Positive Class)     : 0.8295 (82.95%)
+  Precision (Non-Planet / Negative Class) : 0.7921 (79.21%)
+  Precision (Macro Average)               : 0.8108 (81.08%)
+  Precision (Weighted Average)            : 0.8107 (81.07%)
+  Accuracy (at Optimal Threshold)         : 80.95%
+  Accuracy (at Default Threshold 0.5000)  : 56.08%
+  Optimal Decision Threshold (Youden's J) : 0.6644 (Default: 0.5000)
+  ROC-AUC Score                           : 0.8454
+  Best Validation ROC-AUC                 : 0.8353
+  Best Epoch / Epochs Run                 : 45 / 65
+  Trainable Parameters                    : 420,353
+  Recall (Planet)                         : 0.7766 (77.66%)
+  Recall (Non-Planet)                     : 0.8421 (84.21%)
+  F1-Score (Planet)                       : 0.8022
+  F1-Score (Non-Planet)                   : 0.8163
 
 MODEL ARCHITECTURE:
---------------------------------------------------------------------------------------
+--------------------------------------------------------------------------------
   Input           : (batch, 1, 1000)
   Conv Block 1    : Conv1d(1->64, k=3, pad=1, relu) -> BatchNorm1d(64) -> MaxPool1d(2) -> Dropout(0.40) [out: (64, 500)]
   Conv Block 2    : Conv1d(64->128, k=3, pad=1, relu) -> BatchNorm1d(128) -> MaxPool1d(2) -> Dropout(0.40) [out: (128, 250)]
@@ -15,56 +62,31 @@ MODEL ARCHITECTURE:
   Output Head     : Linear(128->1) + Sigmoid
   Parameters      : 420,353 trainable / 420,353 total
 
-TRAINING HYPERPARAMETERS:
---------------------------------------------------------------------------------------
-  framework         : PyTorch (2.9.1+cpu)
-  standardize       : True
-  loss_function     : FocalLoss(gamma=2.5, alpha=0.75)
-  optimizer         : Adam (lr=0.0005, dense_l2=0.005)
-  batch_size        : 32
-  max_epochs        : 120 (stopped at 65, best=45)
-  split sizes       : train=560 / val=140 / test=189
-  random_state      : 42
-  Best Val ROC-AUC  : 0.8353
-  Test ROC-AUC      : 0.8454
+TRAINING CURVE SUMMARY:
+--------------------------------------------------------------------------------
+  Framework           : PyTorch (2.9.1+cpu) on cpu
+  Split sizes         : train=560 / val=140 / test=189
+  Epochs completed    : 65 (best epoch: 45)
+  Final train loss    : 0.0419
+  Best val ROC-AUC    : 0.8353
 
-METRICS AT DEFAULT THRESHOLD (p >= 0.5000):
---------------------------------------------------------------------------------------
-  Precision (Planet)     : 0.5311 (53.11%)
-  Precision (Non-Planet) : 1.0000 (100.00%)
-  Precision (Macro Avg)  : 0.7655 (76.55%)
-  Recall (Planet)        : 1.0000 (100.00%)
-  Accuracy               : 56.08%
+DEFAULT THRESHOLD SUMMARY (p >= 0.5000):
+--------------------------------------------------------------------------------
+  Precision (Planet / Positive Class)     : 0.5311 (53.11%)
+  Precision (Non-Planet / Negative Class) : 1.0000 (100.00%)
+  Precision (Macro Average)               : 0.7655 (76.55%)
+  Recall (Planet)                         : 1.0000 (100.00%)
+  F1-Score (Planet)                       : 0.6937
+  Confusion Matrix (TN / FP / FN / TP)    : 12 / 83 / 0 / 94
 
-CONFUSION MATRIX (Default Threshold 0.5000):
-                       Predicted Non-Planet    Predicted Planet
-  Actual Non-Planet :        12                    83                
-  Actual Planet     :        0                     94                
-
-CLASSIFICATION REPORT (Default Threshold 0.5000):
-              precision    recall  f1-score   support
-
-  Non-Planet     1.0000    0.1263    0.2243        95
-      Planet     0.5311    1.0000    0.6937        94
-
-    accuracy                         0.5608       189
-   macro avg     0.7655    0.5632    0.4590       189
-weighted avg     0.7668    0.5608    0.4578       189
-
-METRICS AT OPTIMAL THRESHOLD (Youden's J = 0.6644):
---------------------------------------------------------------------------------------
-  Precision (Planet)     : 0.8295 (82.95%)
-  Precision (Non-Planet) : 0.7921 (79.21%)
-  Precision (Macro Avg)  : 0.8108 (81.08%)
-  Recall (Planet)        : 0.7766 (77.66%)
-  Accuracy               : 80.95%
-
-CONFUSION MATRIX (Optimal Youden's J Threshold):
+CONFUSION MATRIX (Evaluated at Optimal Threshold):
+--------------------------------------------------------------------------------
                        Predicted Non-Planet    Predicted Planet
   Actual Non-Planet :        80                    15                
   Actual Planet     :        21                    73                
 
-CLASSIFICATION REPORT (Optimal Youden's J Threshold):
+DETAILED CLASSIFICATION REPORT (Optimal Threshold):
+--------------------------------------------------------------------------------
               precision    recall  f1-score   support
 
   Non-Planet     0.7921    0.8421    0.8163        95
@@ -73,4 +95,4 @@ CLASSIFICATION REPORT (Optimal Youden's J Threshold):
     accuracy                         0.8095       189
    macro avg     0.8108    0.8094    0.8093       189
 weighted avg     0.8107    0.8095    0.8093       189
-======================================================================================
+================================================================================
