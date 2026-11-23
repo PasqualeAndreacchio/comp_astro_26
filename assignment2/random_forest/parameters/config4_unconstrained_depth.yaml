@@ -24,6 +24,16 @@ model:
   n_jobs: -1                          # Number of CPU cores for parallel training (-1 uses all cores)
   oob_score: true                     # Compute Out-of-Bag generalization score during training
 
+  # Early Stopping configuration
+  early_stopping:
+    enabled: true                     # Enable incremental early stopping with warm_start
+    step: 20                          # Number of trees added per incremental step
+    patience: 5                       # Steps without improvement before stopping
+    min_delta: 0.001                  # Minimum score improvement to qualify as progress
+    monitor: "oob_score"              # Metric to monitor: 'oob_score', 'val_score', 'val_loss', 'val_auc'
+    mode: "max"                       # Optimization direction: 'max' or 'min'
+    restore_best: true                # Restore best pipeline checkpoint upon completion or early stop
+
 # Output path for this configuration's evaluation report
 output:
   report_path: "random_forest/results/report_config4_unconstrained_depth.txt"

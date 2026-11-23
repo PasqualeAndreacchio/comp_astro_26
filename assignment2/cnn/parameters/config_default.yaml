@@ -27,6 +27,25 @@ model:
   weight_decay: 0.0001                # L2 regularisation strength (Adam weight_decay)
   random_state: 42                    # Global random seed for PyTorch and NumPy
 
+  # Early Stopping configuration
+  early_stopping:
+    enabled: true                     # Enable early stopping
+    patience: 15                      # Number of epochs without improvement before stopping
+    min_delta: 0.0001                 # Minimum change in monitored metric to qualify as improvement
+    monitor: "val_loss"               # Metric to monitor: 'val_loss', 'val_acc', 'train_loss'
+    mode: "min"                       # Optimization direction: 'min' or 'max'
+    restore_best_weights: true        # Restore best model weights upon completion or early stop
+
+  # Learning rate scheduler (ReduceLROnPlateau)
+  reduce_lr_on_plateau:
+    enabled: true                     # Enable ReduceLROnPlateau scheduler
+    factor: 0.5                       # Factor by which the learning rate is reduced
+    patience: 7                       # Number of epochs with no improvement before reducing LR
+    min_lr: 1.0e-6                    # Lower bound on the learning rate
+    threshold: 0.0001                 # Threshold for measuring new optimum
+    monitor: "val_loss"               # Metric to monitor
+    mode: "min"                       # Optimization direction: 'min' or 'max'
+
 # Output paths
 output:
   report_path: "cnn/results/report_default.txt"   # Where to write the evaluation report

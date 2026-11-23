@@ -62,8 +62,8 @@ comp_astro_26/
 ### Module Overview & Architecture
 
 - **`daneel.detection.base` (`BaseTransitDetector`)**: An abstract base class (`ABC`) defining the standard end-to-end detection lifecycle (`load_data` → `build_model` → `fit` → `evaluate` → `display_statistics` → `save_report`). It encapsulates optimal decision threshold tuning via Youden's J statistic, ROC-AUC, classification metrics, confusion matrices, and file exports, while exposing extensible lifecycle hooks for subclass customization.
-- **`daneel.detection.random_forest` (`RandomForestDetection`)**: Inherits from `BaseTransitDetector`. Builds a scikit-learn `Pipeline` (with optional `StandardScaler` and `RandomForestClassifier`), fits the ensemble on light curve features, predicts probabilities, and hooks Out-of-Bag (OOB) generalization scores into statistics and reports.
-- **`daneel.detection.cnn` (`CNNDetection`)**: Inherits from `BaseTransitDetector`. Builds a 1D Convolutional Neural Network (`_Conv1DBlock` backbone with pooling, followed by a dropout-regularized fully-connected head), manages GPU/CPU training with cosine annealing and positive-class weighting, and hooks epoch loss/accuracy curves into reporting.
+- **`daneel.detection.random_forest` (`RandomForestDetection`)**: Inherits from `BaseTransitDetector`. Builds a scikit-learn `Pipeline` (with optional `StandardScaler` and `RandomForestClassifier`), fits the ensemble on light curve features with support for incremental early stopping (`warm_start=True`) and live `tqdm` step progress bars, predicts probabilities, and hooks Out-of-Bag (OOB) generalization scores and retained tree counts into statistics and reports.
+- **`daneel.detection.cnn` (`CNNDetection`)**: Inherits from `BaseTransitDetector`. Builds a 1D Convolutional Neural Network (`_Conv1DBlock` backbone with pooling, followed by a dropout-regularized fully-connected head), manages GPU/CPU training with live `tqdm` epoch progress bars, YAML-configurable early stopping with best-weight restoration, `ReduceLROnPlateau` dynamic learning rate scheduling (with fallback to cosine annealing), positive-class weighting, and hooks epoch loss/accuracy curves into reporting.
 - **`daneel.detection.data_process`**: Centralized data management module providing `load_data` (stratified train/test splits, light curve binning), `create_balanced_dataset` (photometric data augmentation via phase roll, amplitude scaling, and Gaussian jitter), and `resolve_file_path`.
 - **`daneel.detection.transit` & `transit_model`**: Analytical transit modeling routines. `transit.py` queries the NASA Exoplanet Archive TAP API to fetch physical parameters, generates transit light curves, and renders synchronized sky-plane transit animations. `transit_model.py` provides `batman`-based analytical modeling.
 - **`daneel.utils.utils`**: Shared helper functions supporting the pipeline: `setup_logging` (uniform application-wide logging), `deep_merge` (recursive dictionary merging), and `normalize_config` (flexible YAML normalization supporting nested, flat, or wrapped schemas).
@@ -132,11 +132,13 @@ daneel -i examples/params.yaml --atmosphere
 Daneel includes an end-to-end Machine Learning classification pipeline inside `daneel.detection` designed for binary transit detection (Planet vs Non-Planet) using TESS photometric light curves.
 
 #### Features
-- **Configurable YAML execution**: Model hyperparameters, data splitting, and output destinations can be fully defined in YAML.
+- **Configurable YAML execution**: Model hyperparameters, data splitting, incremental early stopping, and output destinations can be fully defined in YAML.
 - **Photometric Data Augmentation**: Automatically balances the training set via Gaussian jitter, amplitude scaling, and transit phase roll to address severe astrophysical class imbalance.
 - **Pipeline Standardization**: scikit-learn `Pipeline` preventing data leakage with optional `StandardScaler`.
+- **Incremental Early Stopping (`warm_start`)**: Adds decision trees in configurable `step` increments up to `n_estimators`, monitors Out-of-Bag (`oob_score`) generalization or validation metrics (`val_score`, `val_loss`, `val_auc`), halts training when no score improvement exceeding `min_delta` occurs for `patience` steps, and restores the best pipeline checkpoint (`restore_best`).
+- **`tqdm` Step Progress Bar**: Real-time progress bar tracking incremental training iterations and estimator milestones with live metrics (`trees`, `oob_score`/monitored metric, `best_oob_score`, and patience count `pat`).
 - **Optimal Threshold Tuning**: Computes the optimal decision threshold using Youden's J statistic ($J = \text{TPR} - \text{FPR}$) alongside default 0.5 threshold evaluation.
-- **Comprehensive Logging & Reports**: Emits structured `INFO` logging, confusion matrix, precision metrics per class, and saves a clean evaluation report.
+- **Comprehensive Logging & Reports**: Emits structured `INFO` logging, confusion matrix, precision metrics per class, fitted tree counts, and saves a clean evaluation report.
 
 #### CLI Usage
 
@@ -163,6 +165,15 @@ detector = RandomForestDetection(
     n_estimators=300,
     max_depth=15,
     standardize=False,
+    early_stopping={
+        "enabled": True,
+        "step": 20,
+        "patience": 5,
+        "min_delta": 0.001,
+        "monitor": "oob_score",
+        "mode": "max",
+        "restore_best": True,
+    },
 )
 detector.load_data()
 detector.fit()
@@ -170,6 +181,18 @@ metrics = detector.evaluate()
 detector.display_statistics()
 detector.save_report("report.txt")
 ```
+
+#### Early Stopping Configuration Options
+
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `enabled` | `bool` | `true` | Enables or disables incremental early stopping with `warm_start=True`. |
+| `step` | `int` | `20` | Number of decision trees added per incremental training iteration. |
+| `patience` | `int` | `5` | Number of consecutive incremental steps without improvement before early termination. |
+| `min_delta` | `float` | `0.001` | Minimum change in the monitored score required to qualify as progress. |
+| `monitor` | `str` | `"oob_score"` | Score to monitor: `"oob_score"` (default, computed out-of-bag without validation set), `"val_score"`, `"val_loss"`, or `"val_auc"`. |
+| `mode` | `str` | `"max"` | Optimization direction: `"max"` (for scores, accuracies, or AUC) or `"min"` (for loss metrics). |
+| `restore_best` | `bool` | `true` | Whether to restore the pipeline checkpoint that achieved the highest score upon completion or early stop. |
 
 #### YAML Parameter Structure
 
@@ -194,6 +217,16 @@ model:
   n_jobs: -1                          # Parallel CPU workers
   oob_score: true                     # Compute Out-of-Bag score
 
+  # Early Stopping configuration
+  early_stopping:
+    enabled: true                     # Enable incremental early stopping with warm_start
+    step: 20                          # Number of trees added per incremental step
+    patience: 5                       # Steps without improvement before stopping
+    min_delta: 0.001                  # Minimum score improvement to qualify as progress
+    monitor: "oob_score"              # Metric to monitor: 'oob_score', 'val_score', 'val_loss', 'val_auc'
+    mode: "max"                       # Optimization direction: 'max' or 'min'
+    restore_best: true                # Restore best pipeline checkpoint upon completion or early stop
+
 output:
   report_path: "random_forest/results/report_config1_shallow_trees.txt"
 
@@ -206,11 +239,14 @@ logging:
 Daneel includes an end-to-end Deep Learning 1D-CNN pipeline inside `daneel.detection` designed for binary transit detection (Planet vs Non-Planet) using folded, phase-binned photometric light curves.
 
 #### Features
-- **Configurable YAML execution**: Data splitting, augmentation, convolutional network backbone, fully-connected head, and training hyperparameters can be fully defined in YAML.
+- **Configurable YAML execution**: Data splitting, augmentation, convolutional network backbone, fully-connected head, early stopping, and learning rate scheduling can be fully defined in YAML.
 - **Photometric Data Augmentation**: Automatically balances the training set via Gaussian jitter, amplitude scaling, and transit phase roll to address severe astrophysical class imbalance.
 - **Deep 1D Convolutional Architecture**: Configurable stack of `Conv1d` → `BatchNorm1d` → `ReLU` → `MaxPool1d` feature extraction blocks followed by fully-connected layers with Dropout and `BCEWithLogitsLoss`.
+- **YAML-Configurable Early Stopping**: Automatically tracks validation or training metrics (e.g. `val_loss`, `val_acc`, `train_loss`), terminates training when no improvement exceeding `min_delta` is observed for `patience` consecutive epochs, and automatically restores the best model checkpoint weights (`restore_best_weights`).
+- **Dynamic Learning Rate Scheduling (`ReduceLROnPlateau`)**: Automatically reduces the learning rate by `factor` when the monitored metric plateaus for `patience` epochs down to `min_lr` (falling back to cosine annealing if disabled).
+- **`tqdm` Epoch Progress Bar**: Interactive training loop progress bar streaming real-time metrics via `set_postfix`: training loss (`train_loss`), training accuracy (`train_acc`), validation loss (`val_loss`), validation accuracy (`val_acc`), active learning rate (`lr`), and early stopping patience (`es_pat`).
 - **Optimal Threshold Tuning**: Computes the optimal decision threshold using Youden's J statistic ($J = \text{TPR} - \text{FPR}$) alongside default 0.5 threshold evaluation.
-- **Comprehensive Logging & Reports**: Emits structured `INFO` logging (with training progress printed every 10 epochs), confusion matrix, precision metrics per class, and saves a clean evaluation report.
+- **Comprehensive Logging & Reports**: Emits structured `INFO` logging, training and validation curve summaries, confusion matrix, precision metrics per class, and saves a clean evaluation report.
 
 #### CLI Usage
 
@@ -242,9 +278,26 @@ detector = CNNDetection(
     pool_size=2,
     fc_units=[128, 64],
     dropout=0.3,
-    batch_size=32,
-    epochs=30,
+    batch_size=128,
+    epochs=150,
     learning_rate=0.001,
+    early_stopping={
+        "enabled": True,
+        "patience": 15,
+        "min_delta": 0.0001,
+        "monitor": "val_loss",
+        "mode": "min",
+        "restore_best_weights": True,
+    },
+    reduce_lr_on_plateau={
+        "enabled": True,
+        "factor": 0.5,
+        "patience": 7,
+        "min_lr": 1.0e-6,
+        "threshold": 0.0001,
+        "monitor": "val_loss",
+        "mode": "min",
+    },
 )
 detector.load_data()
 detector.build_model()
@@ -253,6 +306,29 @@ metrics = detector.evaluate()
 detector.display_statistics()
 detector.save_report("report.txt")
 ```
+
+#### Early Stopping & Learning Rate Scheduler Configuration Options
+
+##### Early Stopping Parameters (`early_stopping`)
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `enabled` | `bool` | `true` | Enables or disables early stopping during training. |
+| `patience` | `int` | `15` | Number of consecutive epochs without metric improvement before halting training. |
+| `min_delta` | `float` | `0.0001` | Minimum change in the monitored metric required to qualify as progress. |
+| `monitor` | `str` | `"val_loss"` | Metric to monitor: `"val_loss"`, `"val_acc"`, `"train_loss"`, or `"train_acc"`. |
+| `mode` | `str` | `"min"` | Optimization direction: `"min"` (for loss metrics) or `"max"` (for accuracy). |
+| `restore_best_weights` | `bool` | `true` | Restores model weights from the best epoch upon completion or early stop. |
+
+##### ReduceLROnPlateau Parameters (`reduce_lr_on_plateau`)
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `enabled` | `bool` | `true` | Enables or disables `ReduceLROnPlateau` scheduling (uses `CosineAnnealingLR` if `false`). |
+| `factor` | `float` | `0.5` | Factor by which the learning rate is reduced ($\text{lr} \leftarrow \text{lr} \times \text{factor}$). |
+| `patience` | `int` | `7` | Number of epochs with no improvement before decaying the learning rate. |
+| `min_lr` | `float` | `1.0e-6` | Lower bound on the learning rate. |
+| `threshold` | `float` | `0.0001` | Threshold for measuring the new optimum, focusing only on significant changes. |
+| `monitor` | `str` | `"val_loss"` | Metric to monitor: `"val_loss"`, `"val_acc"`, `"train_loss"`, etc. |
+| `mode` | `str` | `"min"` | Optimization direction: `"min"` (for loss metrics) or `"max"` (for accuracy). |
 
 #### YAML Parameter Structure
 
@@ -266,16 +342,38 @@ data:
   random_state: 42                    # Deterministic split seed
 
 model:
+  # Architecture
   conv_channels: [16, 32, 64]         # Out-channels for each Conv1D block
   kernel_size: 7                      # Convolution kernel width
   pool_size: 2                        # MaxPool1d window size
   fc_units: [128, 64]                 # Fully-connected layer widths
   dropout: 0.3                        # Dropout probability
-  batch_size: 32                      # Training batch size
-  epochs: 30                          # Total training epochs
+
+  # Training
+  batch_size: 128                     # Training batch size
+  epochs: 150                         # Total training epochs
   learning_rate: 0.001                # Adam initial learning rate
   weight_decay: 0.0001                # L2 regularisation strength
   random_state: 42                    # Deterministic seed for PyTorch and NumPy
+
+  # Early Stopping configuration
+  early_stopping:
+    enabled: true                     # Enable early stopping
+    patience: 15                      # Epochs without improvement before stopping
+    min_delta: 0.0001                 # Minimum change in monitored metric to qualify as improvement
+    monitor: "val_loss"               # Metric to monitor: 'val_loss', 'val_acc', 'train_loss'
+    mode: "min"                       # Optimization direction: 'min' or 'max'
+    restore_best_weights: true        # Restore best model weights upon completion or early stop
+
+  # Learning rate scheduler (ReduceLROnPlateau)
+  reduce_lr_on_plateau:
+    enabled: true                     # Enable ReduceLROnPlateau scheduler
+    factor: 0.5                       # Factor by which the learning rate is reduced
+    patience: 7                       # Epochs with no improvement before reducing LR
+    min_lr: 1.0e-6                    # Lower bound on the learning rate
+    threshold: 0.0001                 # Threshold for measuring new optimum
+    monitor: "val_loss"               # Metric to monitor
+    mode: "min"                       # Optimization direction: 'min' or 'max'
 
 output:
   report_path: "cnn/results/report_default.txt"   # Output evaluation report path
