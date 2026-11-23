@@ -5,6 +5,8 @@ from daneel.detection.random_forest import RandomForestDetection
 from daneel.detection.cnn import CNNDetection
 from daneel.detection.transit import run_for_planet
 
+from daneel.dream import DreamGAN
+
 
 def main():
     parser = argparse.ArgumentParser(description="Model and analyse exoplanet transits.")
@@ -35,11 +37,16 @@ def main():
         ),
     )
     actions.add_argument("-a", "--atmosphere", action="store_true", help="Run atmospheric characterisation")
+    actions.add_argument(
+        "--dream",
+        action="store_true",
+        help="Train a GAN to generate synthetic transit light curves",
+    )
     parser.add_argument(
         "-o",
         "--output",
         default=None,
-        help="Output image for --transit (default: <slug>_light_curve.png) or report file for --detection",
+        help="Output image for --transit, --dream (default: dream_synthetic_transits.png), or report file for --detection",
     )
 
     args = parser.parse_args()
@@ -63,6 +70,9 @@ def main():
             )
     elif args.atmosphere:
         parser.error("atmospheric characterisation is not implemented yet; use --transit")
+    elif args.dream:
+        dreamer = DreamGAN(params=args.input_file)
+        dreamer.run(output_file=args.output)
 
     finish = datetime.now(timezone.utc)
     print(f"Daneel completed in {(finish - start).total_seconds():.2f}s")

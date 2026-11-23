@@ -20,6 +20,8 @@ dependencies = [
     "scipy>=1.10",
     "setuptools>=68",
     "torch>=2.0",
+    "torchvision>=0.15",
+    "tqdm>=4.65",
 ]
 
 
