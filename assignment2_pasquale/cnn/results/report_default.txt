@@ -1,0 +1,55 @@
+================================================================================
+CNN EVALUATION REPORT
+================================================================================
+
+MODEL HYPERPARAMETERS:
+--------------------------------------------------------------------------------
+  conv_channels         : [16, 32, 64]
+  kernel_size           : 7
+  pool_size             : 2
+  fc_units              : [128, 64]
+  dropout               : 0.3
+  batch_size            : 128
+  epochs                : 150
+  learning_rate         : 0.001
+  weight_decay          : 0.0001
+  random_state          : 42
+
+EVALUATION METRICS & PRECISION:
+--------------------------------------------------------------------------------
+  Precision (Planet / Positive Class)     : 0.8586 (85.86%)
+  Precision (Non-Planet / Negative Class) : 0.9000 (90.00%)
+  Precision (Macro Average)               : 0.8793 (87.93%)
+  Precision (Weighted Average)            : 0.8794 (87.94%)
+  Accuracy (at Optimal Threshold)         : 87.83%
+  Accuracy (at Default Threshold 0.5000)  : 86.77%
+  Optimal Decision Threshold (Youden's J) : 0.4549 (Default: 0.5000)
+  ROC-AUC Score                           : 0.9265
+  Recall (Planet)                         : 0.9043 (90.43%)
+  Recall (Non-Planet)                     : 0.8526 (85.26%)
+  F1-Score (Planet)                       : 0.8808
+  F1-Score (Non-Planet)                   : 0.8757
+
+TRAINING CURVE SUMMARY:
+--------------------------------------------------------------------------------
+  Epochs completed    : 150
+  Final train loss    : 0.1647
+  Final train acc     : 93.71%
+
+CONFUSION MATRIX (Evaluated at Optimal Threshold):
+--------------------------------------------------------------------------------
+                       Predicted Non-Planet    Predicted Planet
+  Actual Non-Planet :        81                    14                
+  Actual Planet     :        9                     85                
+
+DETAILED CLASSIFICATION REPORT (Optimal Threshold):
+--------------------------------------------------------------------------------
+              precision    recall  f1-score   support
+
+  Non-Planet     0.9000    0.8526    0.8757        95
+      Planet     0.8586    0.9043    0.8808        94
+
+    accuracy                         0.8783       189
+   macro avg     0.8793    0.8784    0.8783       189
+weighted avg     0.8794    0.8783    0.8782       189
+================================================================================

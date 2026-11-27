@@ -1,0 +1,20 @@
+# ==============================================================================
+# DreamGAN Configuration: Synthetic Light Curve Generation
+# ==============================================================================
+
+dream:
+  data_path: "tess_data.csv"           # Path to TESS light-curve CSV dataset
+  filter_transits: true                # Filter for confirmed transit light curves (label=1)
+  target_length: 1936                  # 44 x 44 square input length
+  side_length: 44                      # Grid side dimension
+  epochs: 200                          # Training epochs
+  batch_size: 32                       # Batch size for small dataset
+  lr: 0.0002                           # Learning rate for Adam
+  beta1: 0.5                           # Beta1 momentum for Adam
+  nz: 100                              # Dimension of latent vector z
+  ngf: 32                              # Generator feature map channels
+  ndf: 32                              # Discriminator feature map channels
+  dropout: 0.25                        # Discriminator dropout rate
+  random_state: 42                     # Deterministic random seed
+  num_generated: 16                    # Number of synthetic curves to plot
+  output_plot: "dream_synthetic_transits.png" # Output figure filename
